@@ -7,9 +7,9 @@ export default function WelcomeScreen({ onContinue }) {
       {/* Top navigation */}
       <nav className="top-nav">
         <div className="logo">
-          <span style={{ color: '#1FD3A0' }}>H</span>
-          <span style={{ color: '#1FD3A0' }}>E</span>
-          <span style={{ color: '#F5C400' }}>R</span>
+          <span style={{ color: '#69f2c4' }}>H</span>
+          <span style={{ color: '#ffde59' }}>E</span>
+          <span style={{ color: '#Ff66c4' }}>R</span>
         </div>
         <div className="nav-links">
           <a href="#" className="active">Home</a>
@@ -30,13 +30,12 @@ export default function WelcomeScreen({ onContinue }) {
       <div className="side-text side-text-left">Ethnic wear</div>
       <div className="side-text side-text-right">reimagined with joy</div>
 
-      {/* Collection badge */}
-      <div className="collection-badge">Spring Collection 2026</div>
+      
 
       {/* Hero card */}
       <div className="hero-card">
         <h1>
-          Welcome to <span className="logo-inline">HER</span> by Mou
+          Made for Women by Woman.<br/>
         </h1>
         <p>
           Discover jewellery, clothing, skin care, makeup, shoes, and lehenga
