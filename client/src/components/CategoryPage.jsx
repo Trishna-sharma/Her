@@ -51,7 +51,7 @@ export default function CategoryPage({ categories, onBack }) {
           <div className="hero-visual">
             <div className="hero-image-placeholder"><img src="new-arrival.png" alt="New Arrivals"/> </div>
             <span className="hero-sticker-label">New arrivals</span>
-          </div>s
+          </div>
         </section>
       </div>
     </div>
