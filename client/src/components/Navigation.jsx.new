@@ -1,0 +1,44 @@
+import React, { useState } from 'react';
+
+const navItems = [
+  { label: 'Home', page: 'welcome' },
+  { label: 'Products', page: 'category' },
+  { label: 'Gallery', page: 'gallery' },
+  { label: 'Contact', page: 'contact' },
+  { label: 'Start Shopping', page: 'startshopping' },
+];
+
+export default function Navigation({ onNavigate, activePage }) {
+  const [open, setOpen] = useState(false);
+
+  const handleNav = (page) => {
+    setOpen(false);
+    if (onNavigate) onNavigate(page);
+  };
+
+  return (
+    <>
+      <button
+        className={`nav-toggle ${open ? 'open' : ''}`}
+        aria-label="Toggle navigation"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span className="hamburger" />
+      </button>
+
+      <nav className={`page-links ${open ? 'open' : ''}`} onClick={() => setOpen(false)}>
+        {navItems.map((item) => (
+          <button
+            key={item.page + item.label}
+            type="button"
+            className={`nav-link ${activePage === item.page ? 'active' : ''}`}
+            onClick={() => handleNav(item.page)}
+          >
+            {item.label}
+          </button>
+        ))}
+      </nav>
+    </>
+  );
+}

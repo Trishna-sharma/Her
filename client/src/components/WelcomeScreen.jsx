@@ -1,24 +1,19 @@
-// src/components/WelcomeScreen.jsx
-import React from 'react';
+﻿import React from 'react';
+import Navigation from './Navigation.jsx';
+import AuthStatusButton from './AuthStatusButton.jsx';
 
-export default function WelcomeScreen({ onContinue }) {
+export default function WelcomeScreen({ onContinue, onNavigate, activePage, onLoginClick, authSession }) {
   return (
     <div className="welcome-screen">
       {/* Top navigation */}
       <nav className="top-nav">
-        <div className="logo">
+        <button type="button" className="logo logo-home" onClick={() => onNavigate('welcome')} aria-label="Go to home page">
           <span style={{ color: '#69f2c4' }}>H</span>
           <span style={{ color: '#ffde59' }}>E</span>
           <span style={{ color: '#Ff66c4' }}>R</span>
-        </div>
-        <div className="nav-links">
-          <a href="#" className="active">Home</a>
-          <a href="#">Products</a>
-          <a href="#">Gallery</a>
-          <a href="#">Contact</a>
-          <a href="#">Start Shopping</a>
-        </div>
-        <button className="login-button">Login</button>
+        </button>
+        <Navigation onNavigate={onNavigate} activePage={activePage} />
+        <AuthStatusButton authSession={authSession} onClick={onLoginClick} />
       </nav>
 
       {/* Decorative blobs */}
@@ -30,15 +25,13 @@ export default function WelcomeScreen({ onContinue }) {
       <div className="side-text side-text-left">Ethnic wear</div>
       <div className="side-text side-text-right">reimagined with joy</div>
 
-      
-
       {/* Hero card */}
       <div className="hero-card">
         <h1>
           Made for Women by Woman.<br/>
         </h1>
         <p>
-          Discover jewellery, clothing, skin care, makeup, shoes, and lehenga
+          Discover clothing, jewellery, makeup, shoes, bags, and skin care
           picks designed for Bangladeshi shoppers.
         </p>
         <button className="primary-button" onClick={onContinue}>
