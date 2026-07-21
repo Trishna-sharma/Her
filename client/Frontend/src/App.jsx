@@ -25,6 +25,8 @@ export default function App() {
   const [cartItems, setCartItems] = useState([]);
   const [wishlistItems, setWishlistItems] = useState([]);
   const [authSession, setAuthSession] = useState(null);
+  const [authEntryRole, setAuthEntryRole] = useState('admin');
+  const [authReturnTarget, setAuthReturnTarget] = useState(null);
 
   useEffect(() => {
     try {
@@ -128,7 +130,38 @@ export default function App() {
     </div>
   );
 
-  const openLogin = () => navTo('auth');
+  const openLogin = (role) => {
+    const resolvedRole = role || authSession?.role || 'admin';
+    setAuthEntryRole(resolvedRole === 'user' ? 'user' : 'admin');
+    setAuthReturnTarget({
+      page,
+      category: selectedCategory,
+      section: selectedSection,
+    });
+    navTo('auth');
+  };
+
+  const closeLogin = () => {
+    if (!authReturnTarget?.page || authReturnTarget.page === 'auth') {
+      navTo('welcome');
+      return;
+    }
+
+    const target = authReturnTarget;
+    setAuthReturnTarget(null);
+
+    if (target.page === 'detail') {
+      navTo('detail', target.category, target.section);
+      return;
+    }
+
+    if (target.page === 'gallery' || target.page === 'category') {
+      navTo(target.page, target.category);
+      return;
+    }
+
+    navTo(target.page);
+  };
   const handleAuthChange = (nextSession) => setAuthSession(nextSession);
 
   if (page === 'welcome') {
@@ -222,6 +255,8 @@ export default function App() {
         activePage={page}
         authSession={authSession}
         onAuthChange={handleAuthChange}
+        initialRole={authEntryRole}
+        onClose={closeLogin}
       />
     );
   }

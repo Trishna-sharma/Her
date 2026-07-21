@@ -225,6 +225,43 @@ button {
   flex-shrink: 0;
 }
 
+.auth-status-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.auth-login-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  min-width: 180px;
+  padding: 0.45rem;
+  border-radius: 14px;
+  border: 1px solid rgba(102, 83, 156, 0.24);
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 16px 34px rgba(55, 38, 101, 0.18);
+  display: grid;
+  gap: 0.38rem;
+  z-index: 35;
+}
+
+.auth-login-menu-item {
+  width: 100%;
+  border: none;
+  border-radius: 10px;
+  padding: 0.52rem 0.72rem;
+  text-align: left;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #2f2455;
+  background: rgba(116, 96, 192, 0.09);
+  cursor: pointer;
+}
+
+.auth-login-menu-item:hover {
+  background: rgba(73, 59, 161, 0.16);
+}
+
 .primary-button {
   font-family: 'Poppins', sans-serif;
   font-weight: 600;
@@ -1970,7 +2007,7 @@ button {
 }
 
 .auth-main-compact {
-  max-width: 380px;
+  max-width: 560px;
   align-items: stretch;
 }
 
@@ -1980,6 +2017,7 @@ button {
   border-radius: 22px;
   padding: 0.95rem;
   box-shadow: 0 18px 44px rgba(92, 60, 146, 0.1);
+  width: 100%;
 }
 
 .auth-mobile-headline {
@@ -2130,6 +2168,12 @@ button {
   margin-top: 0.45rem;
 }
 
+.auth-google-wrap {
+  display: flex;
+  justify-content: center;
+  margin: 15px 0 0;
+}
+
 .auth-switch-row {
   margin: 0.52rem 0 0;
   text-align: center;
@@ -2164,6 +2208,36 @@ button {
   margin-top: 0.48rem;
   cursor: pointer;
   padding: 0;
+}
+
+.auth-profile-card h2 {
+  margin-bottom: 0.62rem;
+}
+
+.auth-profile-card p {
+  margin: 0.28rem 0;
+  color: #3b3553;
+  font-size: 0.9rem;
+}
+
+.auth-profile-card p strong {
+  color: #1f1b33;
+}
+
+.auth-small-logout {
+  margin-top: 0.65rem;
+  border: 1px solid rgba(187, 85, 85, 0.4);
+  border-radius: 999px;
+  background: rgba(255, 238, 238, 0.95);
+  color: #9e2f2f;
+  font-weight: 700;
+  font-size: 0.76rem;
+  padding: 0.36rem 0.76rem;
+  cursor: pointer;
+}
+
+.auth-small-logout:hover {
+  background: rgba(255, 225, 225, 1);
 }
 
 .auth-form-shell,
@@ -2291,6 +2365,21 @@ button {
 }
 .auth-admin-section summary::-webkit-details-marker {
   display: none;
+}
+
+@media (min-width: 980px) {
+  .auth-main {
+    max-width: 1180px;
+  }
+
+  .auth-main-compact {
+    max-width: 640px;
+  }
+
+  .auth-mobile-shell {
+    max-width: 640px;
+    margin: 0 auto;
+  }
 }
 
 .auth-item-form {

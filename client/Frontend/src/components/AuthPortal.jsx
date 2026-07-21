@@ -1,6 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { GoogleLogin } from '@react-oauth/google';
+import axios from 'axios';
 import Navigation from './Navigation.jsx';
 import AuthStatusButton from './AuthStatusButton.jsx';
+
 import {
   addAdminItem,
   clearCatalogueItemOverride,
@@ -14,7 +17,6 @@ import {
 } from '../data/catalogAdminStore.js';
 
 const ADMIN_USERS_KEY = 'herby-admin-users';
-const USER_ACCOUNTS_KEY = 'herby-user-accounts';
 
 function readStorage(key, fallback = []) {
   try {
@@ -41,7 +43,14 @@ function normalizePrice(value) {
   return raw.startsWith('$') ? raw : `$${raw}`;
 }
 
-export default function AuthPortal({ onNavigate, activePage, authSession, onAuthChange }) {
+export default function AuthPortal({
+  onNavigate,
+  activePage,
+  authSession,
+  onAuthChange,
+  initialRole = 'admin',
+  onClose = () => onNavigate('welcome'),
+}) {
   const [role, setRole] = useState('admin');
   const [mode, setMode] = useState('login');
   const [notice, setNotice] = useState('');
@@ -71,6 +80,13 @@ export default function AuthPortal({ onNavigate, activePage, authSession, onAuth
       window.clearTimeout(toastTimerRef.current);
     }
   }, []);
+
+  useEffect(() => {
+    if (initialRole !== 'admin' && initialRole !== 'user') return;
+    setRole(initialRole);
+    setMode('login');
+    setNotice('');
+  }, [initialRole]);
 
   const showToast = (message, tone = 'success') => {
     setToast({ message, tone });
@@ -129,8 +145,9 @@ export default function AuthPortal({ onNavigate, activePage, authSession, onAuth
   };
 
   const handleLogout = () => {
+    const previousRole = authSession?.role === 'user' ? 'user' : 'admin';
     onAuthChange(null);
-    setRole('admin');
+    setRole(previousRole);
     setMode('login');
     setNotice('');
     showToast('Logged out successfully.', 'neutral');
@@ -177,7 +194,41 @@ export default function AuthPortal({ onNavigate, activePage, authSession, onAuth
     showToast('Logged in successfully.', 'success');
   };
 
-  const handleUserAuth = () => {
+  const handleGoogleSuccess = async (credentialResponse) => {
+  try {
+    // 1. Send token to Node.js backend
+    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    const response = await axios.post(`${apiBase}/api/auth/google`, {
+      credential: credentialResponse.credential,
+    });
+
+    const { token, user } = response.data;
+
+    // 2. Create local session for App.jsx
+    const googleSession = {
+      role: 'user',
+      email: user.email,
+      name: user.name,
+      picture: user.picture,
+      token,
+    };
+
+    // 3. Update session state & save to LocalStorage
+    onAuthChange(googleSession);
+    setNotice('');
+    showToast('Signed in with Google successfully!', 'success');
+
+    // 4. Return to previous page or welcome
+    onClose();
+  } catch (error) {
+    console.error('Google Sign-In Error:', error);
+    const backendMessage = error?.response?.data?.message;
+    const backendError = error?.response?.data?.error;
+    setNotice(backendError || backendMessage || 'Google sign-in failed. Please try again.');
+  }
+};
+
+  const handleUserAuth = async () => {
     if (hasActiveSession && !isUserLoggedIn) {
       setNotice('Logout current admin first, then login as user.');
       return;
@@ -192,36 +243,54 @@ export default function AuthPortal({ onNavigate, activePage, authSession, onAuth
       return;
     }
 
-    const users = readStorage(USER_ACCOUNTS_KEY, []);
+    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-    if (mode === 'register') {
-      if (!name) {
-        setNotice('Enter your name to create account.');
+    try {
+      if (mode === 'register') {
+        if (!name) {
+          setNotice('Enter your name to create account.');
+          return;
+        }
+
+        const response = await axios.post(`${apiBase}/api/auth/register`, {
+          name,
+          email,
+          password,
+        });
+
+        const { token, user } = response.data;
+        onAuthChange({
+          role: 'user',
+          email: user.email,
+          name: user.name || name,
+          token,
+        });
+        setNotice('');
+        showToast('Account created and logged in successfully!', 'success');
+        onClose();
         return;
       }
 
-      const exists = users.some((entry) => entry.email === email);
-      if (exists) {
-        setNotice('User already exists. Please login.');
-        return;
-      }
+      const response = await axios.post(`${apiBase}/api/auth/login`, {
+        email,
+        password,
+      });
 
-      const updated = [...users, { name, email, password }];
-      writeStorage(USER_ACCOUNTS_KEY, updated);
-      setMode('login');
-      setNotice('User account created. Please login now.');
-      return;
+      const { token, user } = response.data;
+      onAuthChange({
+        role: 'user',
+        email: user.email,
+        name: user.name || 'User',
+        token,
+      });
+      setNotice('');
+      showToast('Logged in successfully.', 'success');
+      onClose();
+    } catch (error) {
+      const backendMessage = error?.response?.data?.message;
+      const backendError = error?.response?.data?.error;
+      setNotice(backendError || backendMessage || 'User authentication failed.');
     }
-
-    const valid = users.find((entry) => entry.email === email && entry.password === password);
-    if (!valid) {
-      setNotice('Invalid user credentials.');
-      return;
-    }
-
-    onAuthChange({ role: 'user', email: valid.email, name: valid.name });
-    setNotice('');
-    showToast('Logged in successfully.', 'success');
   };
 
   const handleAddItem = (event) => {
@@ -335,8 +404,48 @@ export default function AuthPortal({ onNavigate, activePage, authSession, onAuth
     showToast('Item reset to original data.', 'neutral');
   };
 
-  const adminTabLocked = hasActiveSession && !isAdminLoggedIn;
-  const userTabLocked = hasActiveSession && !isUserLoggedIn;
+  const buildSessionDetails = () => {
+    if (!authSession) {
+      return {
+        role: '-',
+        name: '-',
+        username: '-',
+        email: '-',
+      };
+    }
+
+    const name = String(authSession.name || '').trim() || (authSession.role === 'admin' ? 'Admin' : '-');
+    const email = String(authSession.email || '').trim() || '-';
+    const usernameFromEmail = email.includes('@') ? email.split('@')[0] : email;
+
+    return {
+      role: authSession.role === 'admin' ? 'Admin' : 'User',
+      name,
+      username: usernameFromEmail || name || '-',
+      email,
+    };
+  };
+
+  const renderSessionProfileCard = () => {
+    const details = buildSessionDetails();
+
+    return (
+      <section className="auth-compact-card auth-profile-card" aria-label="Logged in profile details">
+        <h2>Your profile details</h2>
+
+        <p><strong>Role:</strong> {details.role}</p>
+        <p><strong>Name:</strong> {details.name}</p>
+        <p><strong>Username:</strong> {details.username}</p>
+        <p><strong>Email:</strong> {details.email}</p>
+
+        <button type="button" className="auth-small-logout" onClick={handleLogout}>
+          Logout
+        </button>
+      </section>
+    );
+  };
+
+  const authMainClassName = isAdminLoggedIn ? 'auth-main' : 'auth-main auth-main-compact';
 
   const renderAdminAuthForm = () => (
     <section className="auth-compact-card" aria-label="Admin auth form">
@@ -713,13 +822,12 @@ export default function AuthPortal({ onNavigate, activePage, authSession, onAuth
         </button>
 
         {mode === 'login' && (
-          <button
-            type="button"
-            className="auth-google-button"
-            onClick={() => setNotice('Google sign-in needs OAuth setup. I can wire it once keys are ready.')}
-          >
-            Sign in with Google
-          </button>
+          <div className="auth-google-wrap">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => setNotice('Google login failed or was cancelled.')}
+            />
+          </div>
         )}
 
         <p className="auth-switch-row">
@@ -756,54 +864,29 @@ export default function AuthPortal({ onNavigate, activePage, authSession, onAuth
           <span style={{ color: '#Ff66c4' }}>R</span>
         </button>
         <Navigation onNavigate={onNavigate} activePage={activePage} />
-        <AuthStatusButton authSession={authSession} onClick={() => onNavigate('welcome')} />
+        {hasActiveSession ? (
+          <AuthStatusButton authSession={authSession} onClick={onClose} menuEnabled={false} />
+        ) : (
+          <button type="button" className="login-button" onClick={onClose}>Close</button>
+        )}
       </header>
 
       {toast && <div className={`auth-toast ${toast.tone}`}>{toast.message}</div>}
 
-      <main className="auth-main auth-main-compact">
-        {isAdminLoggedIn ? (
-          renderAdminDashboard()
-        ) : (
-          <section className="auth-mobile-shell" aria-label="Login role selection">
-            <div className="auth-mobile-headline">
-              <h1>Login portal</h1>
-            </div>
+      <main className={authMainClassName}>
+        <section className="auth-mobile-shell" aria-label="Login role selection">
+          <div className="auth-mobile-headline">
+            <h1>Login portal</h1>
+          </div>
 
-            <div className="auth-role-tabs">
-              <button
-                type="button"
-                disabled={adminTabLocked}
-                className={`auth-role-tab ${role === 'admin' ? 'active' : ''}`}
-                onClick={() => {
-                  setRole('admin');
-                  setMode('login');
-                  setNotice('');
-                }}
-              >
-                Admin
-              </button>
+          {notice && <p className="auth-notice">{notice}</p>}
 
-              <button
-                type="button"
-                disabled={userTabLocked}
-                className={`auth-role-tab ${role === 'user' ? 'active' : ''}`}
-                onClick={() => {
-                  setRole('user');
-                  setMode('login');
-                  setNotice('');
-                }}
-              >
-                User
-              </button>
-            </div>
+          {hasActiveSession
+            ? renderSessionProfileCard()
+            : (role === 'admin' ? renderAdminAuthForm() : renderUserPanel())}
+        </section>
 
-            {notice && <p className="auth-notice">{notice}</p>}
-
-            {role === 'admin' ? renderAdminAuthForm() : renderUserPanel()}
-
-          </section>
-        )}
+        {isAdminLoggedIn && renderAdminDashboard()}
       </main>
     </div>
   );
