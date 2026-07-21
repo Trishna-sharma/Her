@@ -25,13 +25,28 @@ const corsAllowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
 ].filter(Boolean);
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'https://her-by-mou.vercel.app', // Replace with your actual live frontend Vercel URL
+];
 
 app.use(cors({
   origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps, curl, Postman, or server-to-server)
     if (!origin) {
       callback(null, true);
       return;
     }
+
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+}));
 
     const isLocalhost = /^http:\/\/localhost:\d+$/.test(origin);
     if (isLocalhost || corsAllowedOrigins.includes(origin)) {
@@ -40,8 +55,7 @@ app.use(cors({
     }
 
     callback(new Error('Not allowed by CORS'));
-  },
-}));
+  
 app.use(express.json());
 
 mongoose
