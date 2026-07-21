@@ -6,6 +6,7 @@ import CategoryDetail from './components/CategoryDetail.jsx';
 import ContactPage from './components/Contact.jsx';
 import Startshopping from './components/startshopping.jsx';
 import AuthPortal from './components/AuthPortal.jsx';
+import React from 'react';
 
 const AUTH_SESSION_KEY = 'herby-auth-session';
 
