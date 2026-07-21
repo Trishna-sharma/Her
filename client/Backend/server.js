@@ -199,3 +199,11 @@ app.listen(PORT, () => {
 // At the bottom of server.js
 export default app; 
 // or: module.exports = app; (depending on your module type)
+
+// Only listen locally if not running on Vercel
+if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on http://localhost:${PORT}`);
+  });
+}
