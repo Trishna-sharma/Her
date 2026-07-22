@@ -7,6 +7,7 @@ import bcrypt from 'bcryptjs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
+import nodemailer from 'nodemailer';
 
 // Configure directory path for ES Modules
 const __filename = fileURLToPath(import.meta.url);
@@ -145,6 +146,95 @@ app.post('/api/auth/google', async (req, res) => {
   } catch (error) {
     console.error('Google Auth Route Error:', error);
     return res.status(400).json({ error: error.message || 'Google login failed' });
+  }
+});
+
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
+
+// Helper function to send OTP email
+const sendOtpEmail = async (email, otp) => {
+  await transporter.sendMail({
+    from: `"HER" <${process.env.EMAIL_USER}>`,
+    to: email,
+    subject: 'Your Account Verification Code',
+    html: `
+      <div style="font-family: Arial, sans-serif; padding: 20px;">
+        <h2>Verify Your Email</h2>
+        <p>Your verification code is:</p>
+        <h1 style="color: #4CAF50; letter-spacing: 4px;">${otp}</h1>
+        <p>This code will expire in 10 minutes.</p>
+      </div>
+    `,
+  });
+};
+
+app.post('/api/auth/send-otp', async (req, res) => {
+  try {
+    const { email } = req.body;
+    const safeEmail = String(email || '').trim().toLowerCase();
+
+    if (!safeEmail) {
+      return res.status(400).json({ message: 'Email is required.' });
+    }
+
+    // Generate 6-digit random OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes valid
+
+    let user = await User.findOne({ email: safeEmail });
+    if (!user) {
+      user = new User({ email: safeEmail, name: 'Pending User' });
+    }
+
+    user.otp = otp;
+    user.otpExpiresAt = otpExpiresAt;
+    await user.save();
+
+    await sendOtpEmail(safeEmail, otp);
+
+    return res.status(200).json({ message: 'OTP sent successfully to your email!' });
+  } catch (error) {
+    console.error('Send OTP Error:', error);
+    return res.status(500).json({ message: 'Failed to send OTP.', error: error.message });
+  }
+});
+
+app.post('/api/auth/verify-otp', async (req, res) => {
+  try {
+    const { email, otp, name, password } = req.body;
+    const safeEmail = String(email || '').trim().toLowerCase();
+
+    const user = await User.findOne({ email: safeEmail });
+    if (!user || user.otp !== otp || new Date() > user.otpExpiresAt) {
+      return res.status(400).json({ message: 'Invalid or expired OTP.' });
+    }
+
+    // Mark user as verified and save password hash
+    user.isVerified = true;
+    user.otp = undefined;
+    user.otpExpiresAt = undefined;
+    if (name) user.name = name;
+    if (password) {
+      const salt = await bcrypt.genSalt(10);
+      user.passwordHash = await bcrypt.hash(password, salt);
+    }
+    await user.save();
+
+    const token = issueToken(user);
+
+    return res.status(200).json({
+      message: 'Account verified successfully!',
+      token,
+      user: { id: user._id, name: user.name, email: user.email },
+    });
+  } catch (error) {
+    return res.status(500).json({ message: 'OTP verification failed.', error: error.message });
   }
 });
 

@@ -57,6 +57,10 @@ export default function AuthPortal({
   const [toast, setToast] = useState(null);
   const [inventoryVersion, setInventoryVersion] = useState(0);
 
+  // OTP Verification States
+  const [otpStep, setOtpStep] = useState(false);
+  const [otp, setOtp] = useState('');
+
   const [adminForm, setAdminForm] = useState({ email: '', password: '' });
   const [userForm, setUserForm] = useState({ name: '', email: '', password: '' });
 
@@ -85,6 +89,8 @@ export default function AuthPortal({
     if (initialRole !== 'admin' && initialRole !== 'user') return;
     setRole(initialRole);
     setMode('login');
+    setOtpStep(false);
+    setOtp('');
     setNotice('');
   }, [initialRole]);
 
@@ -149,6 +155,8 @@ export default function AuthPortal({
     onAuthChange(null);
     setRole(previousRole);
     setMode('login');
+    setOtpStep(false);
+    setOtp('');
     setNotice('');
     showToast('Logged out successfully.', 'neutral');
   };
@@ -195,40 +203,34 @@ export default function AuthPortal({
   };
 
   const handleGoogleSuccess = async (credentialResponse) => {
-  try {
-    // 1. Send token to Node.js backend
-    // Remove any extra trailing slashes from the base URL
-const rawBase = import.meta.env.VITE_API_URL || 'https://her-by-mou-backend.vercel.app';
-const apiBase = rawBase.replace(/\/+$/, '');
+    try {
+      const rawBase = import.meta.env.VITE_API_URL || 'https://her-by-mou-backend.vercel.app';
+      const apiBase = rawBase.replace(/\/+$/, '');
 
-const response = await axios.post(`${apiBase}/api/auth/google`, {
-  credential: credentialResponse.credential,
-});
-    const { token, user } = response.data;
+      const response = await axios.post(`${apiBase}/api/auth/google`, {
+        credential: credentialResponse.credential,
+      });
+      const { token, user } = response.data;
 
-    // 2. Create local session for App.jsx
-    const googleSession = {
-      role: 'user',
-      email: user.email,
-      name: user.name,
-      picture: user.picture,
-      token,
-    };
+      const googleSession = {
+        role: 'user',
+        email: user.email,
+        name: user.name,
+        picture: user.picture,
+        token,
+      };
 
-    // 3. Update session state & save to LocalStorage
-    onAuthChange(googleSession);
-    setNotice('');
-    showToast('Signed in with Google successfully!', 'success');
-
-    // 4. Return to previous page or welcome
-    onClose();
-  } catch (error) {
-    console.error('Google Sign-In Error:', error);
-    const backendMessage = error?.response?.data?.message;
-    const backendError = error?.response?.data?.error;
-    setNotice(backendError || backendMessage || 'Google sign-in failed. Please try again.');
-  }
-};
+      onAuthChange(googleSession);
+      setNotice('');
+      showToast('Signed in with Google successfully!', 'success');
+      onClose();
+    } catch (error) {
+      console.error('Google Sign-In Error:', error);
+      const backendMessage = error?.response?.data?.message;
+      const backendError = error?.response?.data?.error;
+      setNotice(backendError || backendMessage || 'Google sign-in failed. Please try again.');
+    }
+  };
 
   const handleUserAuth = async () => {
     if (hasActiveSession && !isUserLoggedIn) {
@@ -240,36 +242,60 @@ const response = await axios.post(`${apiBase}/api/auth/google`, {
     const email = normalizeEmail(userForm.email);
     const password = userForm.password;
 
-    if (!email || !password) {
-      setNotice('Enter your email and password.');
-      return;
-    }
-
-    const apiBase = import.meta.env.VITE_API_URL || 'https://her-by-mou-backend.vercel.app';
+    const rawBase = import.meta.env.VITE_API_URL || 'https://her-by-mou-backend.vercel.app';
+    const apiBase = rawBase.replace(/\/+$/, '');
 
     try {
+      // --- REGISTRATION FLOW ---
       if (mode === 'register') {
-        if (!name) {
-          setNotice('Enter your name to create account.');
+        // Step 1: Send OTP to Email
+        if (!otpStep) {
+          if (!name || !email || !password) {
+            setNotice('Please fill in your name, email, and password.');
+            return;
+          }
+
+          setNotice('Sending verification code...');
+          await axios.post(`${apiBase}/api/auth/send-otp`, { email });
+
+          setOtpStep(true);
+          setNotice('');
+          showToast('OTP sent to your email!', 'success');
           return;
         }
 
-        const response = await axios.post(`${apiBase}/api/auth/register`, {
-          name,
-          email,
-          password,
-        });
+        // Step 2: Verify OTP & Create Account
+        if (otpStep) {
+          if (!otp.trim()) {
+            setNotice('Please enter the 6-digit OTP code.');
+            return;
+          }
 
-        const { token, user } = response.data;
-        onAuthChange({
-          role: 'user',
-          email: user.email,
-          name: user.name || name,
-          token,
-        });
-        setNotice('');
-        showToast('Account created and logged in successfully!', 'success');
-        onClose();
+          const response = await axios.post(`${apiBase}/api/auth/verify-otp`, {
+            email,
+            otp: otp.trim(),
+            name,
+            password,
+          });
+
+          const { token, user } = response.data;
+          onAuthChange({
+            role: 'user',
+            email: user.email,
+            name: user.name || name,
+            token,
+          });
+
+          setNotice('');
+          showToast('Account verified and logged in successfully!', 'success');
+          onClose();
+          return;
+        }
+      }
+
+      // --- LOGIN FLOW ---
+      if (!email || !password) {
+        setNotice('Enter your email and password.');
         return;
       }
 
@@ -291,7 +317,22 @@ const response = await axios.post(`${apiBase}/api/auth/google`, {
     } catch (error) {
       const backendMessage = error?.response?.data?.message;
       const backendError = error?.response?.data?.error;
-      setNotice(backendError || backendMessage || 'User authentication failed.');
+      setNotice(backendError || backendMessage || 'Authentication failed. Please try again.');
+    }
+  };
+
+  const handleResendOtp = async () => {
+    const email = normalizeEmail(userForm.email);
+    const rawBase = import.meta.env.VITE_API_URL || 'https://her-by-mou-backend.vercel.app';
+    const apiBase = rawBase.replace(/\/+$/, '');
+
+    try {
+      setNotice('Resending verification code...');
+      await axios.post(`${apiBase}/api/auth/send-otp`, { email });
+      setNotice('');
+      showToast('New OTP code sent to your email!', 'success');
+    } catch (error) {
+      setNotice(error?.response?.data?.message || 'Failed to resend OTP.');
     }
   };
 
@@ -481,7 +522,7 @@ const response = await axios.post(`${apiBase}/api/auth/google`, {
         <button
           type="button"
           className="auth-text-link"
-          onClick={() => setNotice('Password reset needs backend support. This version is frontend-only.')}
+          onClick={() => setNotice('Password reset needs backend support.')}
         >
           Forgot password?
         </button>
@@ -764,9 +805,16 @@ const response = await axios.post(`${apiBase}/api/auth/google`, {
 
     return (
       <section className="auth-compact-card" aria-label="User auth form">
-        <h2>{mode === 'login' ? 'Nice to see you!' : 'Create account'}</h2>
+        <h2>
+          {mode === 'login'
+            ? 'Nice to see you!'
+            : otpStep
+            ? 'Verify Your Email'
+            : 'Create account'}
+        </h2>
 
-        {mode === 'register' && (
+        {/* --- REGISTRATION INPUTS (STEP 1) --- */}
+        {mode === 'register' && !otpStep && (
           <label className="auth-field">
             <span>User name</span>
             <input
@@ -778,27 +826,61 @@ const response = await axios.post(`${apiBase}/api/auth/google`, {
           </label>
         )}
 
-        <label className="auth-field">
-          <span>{mode === 'login' ? 'Email or phone number' : 'Email'}</span>
-          <input
-            type="email"
-            placeholder={mode === 'login' ? 'Email or phone number' : 'Your email'}
-            value={userForm.email}
-            onChange={(event) => setUserForm((prev) => ({ ...prev, email: event.target.value }))}
-          />
-        </label>
+        {/* --- EMAIL & PASSWORD INPUTS (For Login and Register Step 1) --- */}
+        {!otpStep && (
+          <>
+            <label className="auth-field">
+              <span>{mode === 'login' ? 'Email or phone number' : 'Email'}</span>
+              <input
+                type="email"
+                placeholder={mode === 'login' ? 'Email or phone number' : 'Your email'}
+                value={userForm.email}
+                onChange={(event) => setUserForm((prev) => ({ ...prev, email: event.target.value }))}
+              />
+            </label>
 
-        <label className="auth-field">
-          <span>Password</span>
-          <input
-            type="password"
-            placeholder="Enter password"
-            value={userForm.password}
-            onChange={(event) => setUserForm((prev) => ({ ...prev, password: event.target.value }))}
-          />
-        </label>
+            <label className="auth-field">
+              <span>Password</span>
+              <input
+                type="password"
+                placeholder="Enter password"
+                value={userForm.password}
+                onChange={(event) => setUserForm((prev) => ({ ...prev, password: event.target.value }))}
+              />
+            </label>
+          </>
+        )}
 
-        {mode === 'login' ? (
+        {/* --- OTP CODE INPUT (STEP 2) --- */}
+        {mode === 'register' && otpStep && (
+          <>
+            <p style={{ fontSize: '0.88rem', opacity: 0.85, marginBottom: '12px' }}>
+              We've sent a 6-digit verification code to <strong>{userForm.email}</strong>.
+            </p>
+            <label className="auth-field">
+              <span>6-Digit Verification Code</span>
+              <input
+                type="text"
+                placeholder="e.g. 123456"
+                maxLength={6}
+                value={otp}
+                onChange={(event) => setOtp(event.target.value)}
+              />
+            </label>
+            <div style={{ textAlign: 'right', marginTop: '-4px', marginBottom: '12px' }}>
+              <button
+                type="button"
+                className="auth-text-link"
+                onClick={handleResendOtp}
+              >
+                Resend OTP
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* --- CHECKBOX / EXTRA LINKS --- */}
+        {mode === 'login' && (
           <div className="auth-inline-row">
             <label className="auth-checkline">
               <input type="checkbox" defaultChecked />
@@ -807,20 +889,27 @@ const response = await axios.post(`${apiBase}/api/auth/google`, {
             <button
               type="button"
               className="auth-text-link"
-              onClick={() => setNotice('Password reset needs backend support. This version is frontend-only.')}
+              onClick={() => setNotice('Password reset needs backend support.')}
             >
               Forgot password?
             </button>
           </div>
-        ) : (
+        )}
+
+        {mode === 'register' && !otpStep && (
           <label className="auth-checkline">
             <input type="checkbox" defaultChecked />
             <span>I accept the terms and privacy policy</span>
           </label>
         )}
 
+        {/* --- MAIN ACTION BUTTON --- */}
         <button type="button" className="auth-solid-action" onClick={handleUserAuth}>
-          {mode === 'login' ? 'Sign in' : 'Sign up'}
+          {mode === 'login'
+            ? 'Sign in'
+            : otpStep
+            ? 'Verify Code & Complete Sign Up'
+            : 'Send OTP Code'}
         </button>
 
         {mode === 'login' && (
@@ -839,6 +928,8 @@ const response = await axios.post(`${apiBase}/api/auth/google`, {
             className="auth-text-link"
             onClick={() => {
               setMode((prev) => (prev === 'login' ? 'register' : 'login'));
+              setOtpStep(false);
+              setOtp('');
               setNotice('');
             }}
           >
