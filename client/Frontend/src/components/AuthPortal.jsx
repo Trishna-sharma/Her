@@ -197,7 +197,7 @@ export default function AuthPortal({
   const handleGoogleSuccess = async (credentialResponse) => {
   try {
     // 1. Send token to Node.js backend
-    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    const apiBase = import.meta.env.VITE_API_URL || 'https://her-by-mou-backend.vercel.app'
     const response = await axios.post(`${apiBase}/api/auth/google`, {
       credential: credentialResponse.credential,
     });
@@ -243,7 +243,7 @@ export default function AuthPortal({
       return;
     }
 
-    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    const apiBase = import.meta.env.VITE_API_URL || 'https://her-by-mou-backend.vercel.app';
 
     try {
       if (mode === 'register') {
