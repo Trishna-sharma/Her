@@ -47,6 +47,31 @@ app.use(cors({
   credentials: true,
 }));
 
+// --- EMAIL NORMALIZATION HELPER ---
+// Converts: "trishnasharma.2.0.0.2+alias@gmail.com" -> "trishnasharma2002@gmail.com"
+const normalizeEmail = (rawEmail) => {
+  if (!rawEmail || typeof rawEmail !== 'string') return '';
+  
+  let email = rawEmail.trim().toLowerCase();
+  const parts = email.split('@');
+  
+  if (parts.length !== 2) return email;
+
+  let [local, domain] = parts;
+
+  // Handle Gmail / Googlemail dot and plus alias removal
+  if (domain === 'gmail.com' || domain === 'googlemail.com') {
+    local = local.replace(/\./g, '');       // Remove all dots
+    local = local.split('+')[0];             // Remove everything after '+'
+    domain = 'gmail.com';
+  } else {
+    // For other domains, only remove plus aliases
+    local = local.split('+')[0];
+  }
+
+  return `${local}@${domain}`;
+};
+
 // --- SERVERLESS MONGODB CONNECTION CACHING ---
 let cached = global.mongoose;
 
@@ -61,7 +86,7 @@ async function connectDB() {
 
   if (!cached.promise) {
     const opts = {
-      bufferCommands: false, // Disables command buffering to avoid 10s timeouts
+      bufferCommands: false,
       serverSelectionTimeoutMS: 5000,
     };
 
@@ -100,7 +125,7 @@ const transporter = nodemailer.createTransport({
 const sendOtpEmail = async (email, otp) => {
   await transporter.sendMail({
     from: `"HER" <${process.env.EMAIL_USER}>`,
-    to: email,
+    to: email, // Sends to the exact address typed by user
     subject: 'Your Account Verification Code',
     html: `
       <div style="font-family: Arial, sans-serif; padding: 20px;">
@@ -121,14 +146,18 @@ app.post('/api/auth/login', async (req, res) => {
     await connectDB();
 
     const { email, password } = req.body;
-    const safeEmail = String(email || '').trim().toLowerCase();
+    const normalized = normalizeEmail(email);
     const safePassword = String(password || '');
 
-    if (!safeEmail || !safePassword) {
+    if (!normalized || !safePassword) {
       return res.status(400).json({ message: 'Email and password are required.' });
     }
 
-    const user = await User.findOne({ email: safeEmail });
+    // Search by normalized email or exact email
+    const user = await User.findOne({
+      $or: [{ email: normalized }, { email: String(email).trim().toLowerCase() }]
+    });
+
     if (!user || !user.passwordHash) {
       return res.status(401).json({ message: 'Invalid email or password.' });
     }
@@ -163,24 +192,26 @@ app.post('/api/auth/google', async (req, res) => {
 
     const payload = ticket.getPayload();
     const { sub: googleId, email, name, picture } = payload;
-    const safeEmail = String(email || '').trim().toLowerCase();
+    const normalized = normalizeEmail(email);
 
     let user = await User.findOne({ googleId });
     if (!user) {
-      user = await User.findOne({ email: safeEmail });
+      user = await User.findOne({
+        $or: [{ email: normalized }, { email: String(email).trim().toLowerCase() }]
+      });
     }
 
     if (!user) {
       user = new User({
         googleId,
-        email: safeEmail,
+        email: normalized, // Save as normalized email
         name,
         picture,
         isGoogleUser: true,
         isVerified: true,
       });
       await user.save();
-      console.log('✨ New Google user saved to MongoDB:', safeEmail);
+      console.log('✨ New Google user saved to MongoDB:', normalized);
     } else if (!user.googleId) {
       user.googleId = googleId;
       if (!user.name && name) user.name = name;
@@ -207,43 +238,48 @@ app.post('/api/auth/google', async (req, res) => {
   }
 });
 
-// 3. Send OTP Route (FIXED DUPLICATE CHECK)
+// 3. Send OTP Route (WITH GMAIL / ALIAS DUPLICATE CHECK)
 app.post('/api/auth/send-otp', async (req, res) => {
   try {
     await connectDB();
 
     const { email } = req.body;
-    const safeEmail = String(email || '').trim().toLowerCase();
+    const rawEmail = String(email || '').trim().toLowerCase();
+    const normalized = normalizeEmail(email);
 
-    if (!safeEmail) {
+    if (!rawEmail) {
       return res.status(400).json({ message: 'Email is required.' });
     }
 
-    const existingUser = await User.findOne({ email: safeEmail });
+    // Query both raw email and normalized email
+    const existingUser = await User.findOne({
+      $or: [{ email: normalized }, { email: rawEmail }]
+    });
 
-    // Reject request if an account with this email exists (Verified, Password, or Google User)
+    // Reject request if ANY matching account exists
     if (existingUser) {
       if (existingUser.isVerified || existingUser.passwordHash || existingUser.googleId) {
         return res.status(400).json({
-          message: 'An account with this email already exists. Please log in.',
+          message: 'An account with this email address already exists. Please log in.',
         });
       }
     }
 
     // Generate 6-digit random OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
 
     let user = existingUser;
     if (!user) {
-      user = new User({ email: safeEmail, name: 'Pending User', isVerified: false });
+      user = new User({ email: normalized, name: 'Pending User', isVerified: false });
     }
 
     user.otp = otp;
     user.otpExpiresAt = otpExpiresAt;
     await user.save();
 
-    await sendOtpEmail(safeEmail, otp);
+    // Send to the exact raw address typed in the UI so the user receives it
+    await sendOtpEmail(rawEmail, otp);
 
     return res.status(200).json({ message: 'OTP sent successfully to your email!' });
   } catch (error) {
@@ -258,10 +294,14 @@ app.post('/api/auth/verify-otp', async (req, res) => {
     await connectDB();
 
     const { email, otp, name, password } = req.body;
-    const safeEmail = String(email || '').trim().toLowerCase();
+    const rawEmail = String(email || '').trim().toLowerCase();
+    const normalized = normalizeEmail(email);
     const safeOtp = String(otp || '').trim();
 
-    const user = await User.findOne({ email: safeEmail });
+    const user = await User.findOne({
+      $or: [{ email: normalized }, { email: rawEmail }]
+    });
+
     if (!user || user.otp !== safeOtp || new Date() > user.otpExpiresAt) {
       return res.status(400).json({ message: 'Invalid or expired OTP.' });
     }
