@@ -197,11 +197,13 @@ export default function AuthPortal({
   const handleGoogleSuccess = async (credentialResponse) => {
   try {
     // 1. Send token to Node.js backend
-    const apiBase = import.meta.env.VITE_API_URL || 'https://her-by-mou-backend.vercel.app'
-    const response = await axios.post(`${apiBase}/api/auth/google`, {
-      credential: credentialResponse.credential,
-    });
+    // Remove any extra trailing slashes from the base URL
+const rawBase = import.meta.env.VITE_API_URL || 'https://her-by-mou-backend.vercel.app';
+const apiBase = rawBase.replace(/\/+$/, '');
 
+const response = await axios.post(`${apiBase}/api/auth/google`, {
+  credential: credentialResponse.credential,
+});
     const { token, user } = response.data;
 
     // 2. Create local session for App.jsx
