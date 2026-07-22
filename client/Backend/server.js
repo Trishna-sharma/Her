@@ -118,7 +118,7 @@ const sendOtpEmail = async (email, otp) => {
 // 1. Manual Login Route
 app.post('/api/auth/login', async (req, res) => {
   try {
-    await connectDB(); // Ensure DB is connected
+    await connectDB();
 
     const { email, password } = req.body;
     const safeEmail = String(email || '').trim().toLowerCase();
@@ -149,7 +149,7 @@ app.post('/api/auth/login', async (req, res) => {
 // 2. Google OAuth Route
 app.post('/api/auth/google', async (req, res) => {
   try {
-    await connectDB(); // Ensure DB is connected
+    await connectDB();
 
     const { credential } = req.body;
     if (!credential) {
@@ -207,10 +207,10 @@ app.post('/api/auth/google', async (req, res) => {
   }
 });
 
-// 3. Send OTP Route
+// 3. Send OTP Route (FIXED DUPLICATE CHECK)
 app.post('/api/auth/send-otp', async (req, res) => {
   try {
-    await connectDB(); // Ensure DB is connected
+    await connectDB();
 
     const { email } = req.body;
     const safeEmail = String(email || '').trim().toLowerCase();
@@ -219,19 +219,24 @@ app.post('/api/auth/send-otp', async (req, res) => {
       return res.status(400).json({ message: 'Email is required.' });
     }
 
-    let user = await User.findOne({ email: safeEmail });
+    const existingUser = await User.findOne({ email: safeEmail });
 
-    // Reject request if verified user account already exists
-    if (user && user.isVerified) {
-      return res.status(400).json({ message: 'An account with this email already exists. Please log in.' });
+    // Reject request if an account with this email exists (Verified, Password, or Google User)
+    if (existingUser) {
+      if (existingUser.isVerified || existingUser.passwordHash || existingUser.googleId) {
+        return res.status(400).json({
+          message: 'An account with this email already exists. Please log in.',
+        });
+      }
     }
 
     // Generate 6-digit random OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // Valid for 10 mins
+    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
+    let user = existingUser;
     if (!user) {
-      user = new User({ email: safeEmail, name: 'Pending User' });
+      user = new User({ email: safeEmail, name: 'Pending User', isVerified: false });
     }
 
     user.otp = otp;
@@ -250,7 +255,7 @@ app.post('/api/auth/send-otp', async (req, res) => {
 // 4. Verify OTP Route
 app.post('/api/auth/verify-otp', async (req, res) => {
   try {
-    await connectDB(); // Ensure DB is connected
+    await connectDB();
 
     const { email, otp, name, password } = req.body;
     const safeEmail = String(email || '').trim().toLowerCase();
