@@ -140,6 +140,8 @@ export default function Gallery({
   activePage,
   onLoginClick,
   authSession,
+  theme,
+  onToggleTheme,
 }) {
   const [currentCategory, setCurrentCategory] = useState(selectedCategory || categories[0]);
 
@@ -156,7 +158,7 @@ export default function Gallery({
       .map((item) => ({
         id: `admin-${item.id}`,
         name: item.name,
-        img: item.img || 'new-arrival.png',
+        img: item.img || item.image || 'new-arrival.png',
         price: item.price,
       })),
   ];
@@ -169,7 +171,7 @@ export default function Gallery({
           <span style={{ color: '#ffde59' }}>E</span>
           <span style={{ color: '#Ff66c4' }}>R</span>
         </button>
-        <Navigation onNavigate={onNavigate} activePage={activePage} />
+        <Navigation onNavigate={onNavigate} activePage={activePage} theme={theme} onToggleTheme={onToggleTheme} />
         <AuthStatusButton authSession={authSession} onClick={onLoginClick} />
       </header>
 

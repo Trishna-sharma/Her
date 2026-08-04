@@ -10,6 +10,10 @@ const rowThemes = [
   { label: 'Premium Edit', namePrefix: 'Premium', priceDelta: 26 },
 ];
 
+function getItemImage(item) {
+  return String(item?.img || item?.image || '').trim() || 'new-arrival.png';
+}
+
 function readStorage(key, fallback = []) {
   try {
     const raw = window.localStorage.getItem(key);
@@ -143,6 +147,7 @@ export function applyCatalogueItemState(meta, item) {
 
   return {
     ...item,
+    img: getItemImage(item),
     ...(override || {}),
     __catalogMeta: meta,
     __catalogKey: key,
@@ -172,7 +177,7 @@ export function mergeAdminItemsIntoSections(baseSections, category) {
       id: `admin-${item.id}`,
       name: item.name,
       price: item.price,
-      img: item.img || 'new-arrival.png',
+      img: getItemImage(item),
       sizes: item.sizes || '',
       isAdminCreated: true,
     });
@@ -194,7 +199,7 @@ export function getSectionsForCategory(category) {
         id: idx + 1,
         name: item.name,
         price: item.price,
-        img: item.img,
+        img: getItemImage(item),
       },
     ];
     return acc;
@@ -252,7 +257,7 @@ export function listAllWebsiteItems() {
             originalName: item.name,
             name: liveItem.name,
             price: liveItem.price,
-            img: liveItem.img || 'new-arrival.png',
+            img: getItemImage(liveItem),
             saleTag: liveItem.saleTag || '',
             isDeleted: liveItem.isDeleted,
           });

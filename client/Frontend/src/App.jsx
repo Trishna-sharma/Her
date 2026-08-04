@@ -9,6 +9,7 @@ import AuthPortal from './components/AuthPortal.jsx';
 import React from 'react';
 
 const AUTH_SESSION_KEY = 'herby-auth-session';
+const THEME_KEY = 'herby-theme';
 
 const categories = [
   'Clothing',
@@ -21,6 +22,13 @@ const categories = [
 
 export default function App() {
   const [page, setPage] = useState('welcome');
+  const [theme, setTheme] = useState(() => {
+    try {
+      return window.localStorage.getItem(THEME_KEY) === 'dark' ? 'dark' : 'light';
+    } catch {
+      return 'light';
+    }
+  });
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedSection, setSelectedSection] = useState(null);
   const [cartItems, setCartItems] = useState([]);
@@ -59,6 +67,11 @@ export default function App() {
 
     window.localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(authSession));
   }, [authSession]);
+
+  useEffect(() => {
+    document.body.dataset.theme = theme;
+    window.localStorage.setItem(THEME_KEY, theme);
+  }, [theme]);
 
   const toggleWishlistItem = (item) => {
     if (!item?.itemId) return;
@@ -125,6 +138,10 @@ export default function App() {
     }
   };
 
+  const toggleTheme = () => {
+    setTheme((current) => (current === 'dark' ? 'light' : 'dark'));
+  };
+
   const renderPage = (content) => (
     <div className="app-container full-bleed">
       {content}
@@ -173,6 +190,8 @@ export default function App() {
         activePage={page}
         onLoginClick={openLogin}
         authSession={authSession}
+        theme={theme}
+        onToggleTheme={toggleTheme}
       />
     );
   }
@@ -186,6 +205,8 @@ export default function App() {
         activePage={page}
         onLoginClick={openLogin}
         authSession={authSession}
+        theme={theme}
+        onToggleTheme={toggleTheme}
       />
     );
   }
@@ -199,6 +220,8 @@ export default function App() {
         activePage={page}
         onLoginClick={openLogin}
         authSession={authSession}
+        theme={theme}
+        onToggleTheme={toggleTheme}
       />
     );
   }
@@ -215,6 +238,8 @@ export default function App() {
         activePage={page}
         onLoginClick={openLogin}
         authSession={authSession}
+        theme={theme}
+        onToggleTheme={toggleTheme}
       />
     );
   }
@@ -226,6 +251,8 @@ export default function App() {
         activePage={page}
         onLoginClick={openLogin}
         authSession={authSession}
+        theme={theme}
+        onToggleTheme={toggleTheme}
       />
     );
   }
@@ -245,6 +272,8 @@ export default function App() {
         onAddCartItem={addCartItem}
         onLoginClick={openLogin}
         authSession={authSession}
+        theme={theme}
+        onToggleTheme={toggleTheme}
       />
     );
   }
@@ -258,6 +287,8 @@ export default function App() {
         onAuthChange={handleAuthChange}
         initialRole={authEntryRole}
         onClose={closeLogin}
+        theme={theme}
+        onToggleTheme={toggleTheme}
       />
     );
   }

@@ -25,6 +25,8 @@ export default function Startshopping({
   onUpdateCartItemQuantity,
   onRemoveCartItem,
   onMoveWishlistItemToCart,
+  theme,
+  onToggleTheme,
 }) {
   const [activeTab, setActiveTab] = useState('cart');
 
@@ -74,7 +76,7 @@ export default function Startshopping({
           <span style={{ color: '#ffde59' }}>E</span>
           <span style={{ color: '#Ff66c4' }}>R</span>
         </button>
-        <Navigation onNavigate={onNavigate} activePage={activePage} />
+        <Navigation onNavigate={onNavigate} activePage={activePage} theme={theme} onToggleTheme={onToggleTheme} />
         <AuthStatusButton authSession={authSession} onClick={onLoginClick} />
       </header>
 
