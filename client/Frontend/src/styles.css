@@ -3529,6 +3529,23 @@ button {
     color: #d47d74;
   }
 
+  .arc-name {
+    background: linear-gradient(135deg, rgba(73, 34, 42, 0.95), rgba(54, 24, 31, 0.95));
+    color: #fdebea;
+    border: 1px solid rgba(192, 114, 108, 0.45);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
+  }
+
+  .arc-name:hover {
+    background: linear-gradient(135deg, #a8424f, #7f313d);
+    color: #fff4f2;
+    border-color: transparent;
+  }
+
+  .arc-link {
+    color: #f3dedb;
+  }
+
   .page-links .nav-link,
   .nav-links .nav-link,
   .login-button,
