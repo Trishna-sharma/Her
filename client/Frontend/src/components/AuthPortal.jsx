@@ -50,8 +50,6 @@ export default function AuthPortal({
   onAuthChange,
   initialRole = 'admin',
   onClose = () => onNavigate('welcome'),
-  theme,
-  onToggleTheme,
 }) {
   const [role, setRole] = useState('admin');
   const [mode, setMode] = useState('login');
@@ -1062,7 +1060,7 @@ export default function AuthPortal({
           <span style={{ color: '#ffde59' }}>E</span>
           <span style={{ color: '#Ff66c4' }}>R</span>
         </button>
-        <Navigation onNavigate={onNavigate} activePage={activePage} theme={theme} onToggleTheme={onToggleTheme} />
+        <Navigation onNavigate={onNavigate} activePage={activePage} />
         {hasActiveSession ? (
           <AuthStatusButton authSession={authSession} onClick={onClose} menuEnabled={false} />
         ) : (

@@ -2,7 +2,7 @@
 import Navigation from './Navigation.jsx';
 import AuthStatusButton from './AuthStatusButton.jsx';
 
-export default function WelcomeScreen({ onContinue, onNavigate, activePage, onLoginClick, authSession, theme, onToggleTheme }) {
+export default function WelcomeScreen({ onContinue, onNavigate, activePage, onLoginClick, authSession }) {
   return (
     <div className="welcome-screen">
       {/* Top navigation */}
@@ -12,7 +12,7 @@ export default function WelcomeScreen({ onContinue, onNavigate, activePage, onLo
           <span style={{ color: '#ffde59' }}>E</span>
           <span style={{ color: '#Ff66c4' }}>R</span>
         </button>
-        <Navigation onNavigate={onNavigate} activePage={activePage} theme={theme} onToggleTheme={onToggleTheme} />
+        <Navigation onNavigate={onNavigate} activePage={activePage} />
         <AuthStatusButton authSession={authSession} onClick={onLoginClick} />
       </nav>
 

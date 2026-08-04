@@ -42,8 +42,6 @@ export default function CategoryDetail({
   activePage,
   onLoginClick,
   authSession,
-  theme,
-  onToggleTheme,
   wishlistItems = [],
   onToggleWishlist = () => {},
   onAddCartItem = () => {},
@@ -201,7 +199,7 @@ export default function CategoryDetail({
           <span style={{ color: '#ffde59' }}>E</span>
           <span style={{ color: '#Ff66c4' }}>R</span>
         </button>
-        <Navigation onNavigate={onNavigate} activePage={activePage} theme={theme} onToggleTheme={onToggleTheme} />
+        <Navigation onNavigate={onNavigate} activePage={activePage} />
         <AuthStatusButton authSession={authSession} onClick={onLoginClick} />
       </header>
 

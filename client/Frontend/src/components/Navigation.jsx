@@ -8,7 +8,7 @@ const navItems = [
   { label: 'Your Cart', page: 'startshopping' },
 ];
 
-export default function Navigation({ onNavigate, activePage, theme = 'light', onToggleTheme = () => {} }) {
+export default function Navigation({ onNavigate, activePage }) {
   const [open, setOpen] = useState(false);
   const shellRef = useRef(null);
 
@@ -50,16 +50,6 @@ export default function Navigation({ onNavigate, activePage, theme = 'light', on
         onClick={() => setOpen((value) => !value)}
       >
         <span className="hamburger" />
-      </button>
-
-      <button
-        type="button"
-        className="theme-toggle"
-        onClick={onToggleTheme}
-        aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
-        title={theme === 'dark' ? 'Light theme' : 'Dark theme'}
-      >
-        <span aria-hidden="true">{theme === 'dark' ? '☀' : '☾'}</span>
       </button>
 
       <nav className={`page-links ${open ? 'open' : ''}`}>
