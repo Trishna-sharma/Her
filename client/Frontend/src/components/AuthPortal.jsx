@@ -391,7 +391,7 @@ export default function AuthPortal({
       return;
     }
 
-    const rawBase = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    const rawBase = import.meta.env.VITE_API_URL || 'https://her-by-mou-backend.vercel.app';
     const apiBase = rawBase.replace(/\/+$/, '');
     const payload = new FormData();
     payload.append('image', file);
@@ -414,6 +414,7 @@ export default function AuthPortal({
       setNotice('');
       showToast('Image uploaded and linked to item.', 'success');
     } catch (error) {
+      console.error('Image upload failed:', error);
       const message = error?.response?.data?.message || 'Image upload failed.';
       setNotice(message);
     } finally {

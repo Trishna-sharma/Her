@@ -2265,6 +2265,7 @@ button {
   flex-direction: column;
   gap: 0.38rem;
   margin-bottom: 0.75rem;
+  min-width: 0;
 }
 
 .auth-field span {
@@ -2282,6 +2283,18 @@ button {
   font: inherit;
   color: #2d2052;
   background: rgba(255, 255, 255, 0.9);
+  width: 100%;
+  min-width: 0;
+}
+
+.auth-field select {
+  width: 100%;
+  min-width: 0;
+}
+
+.auth-field input[type='file'] {
+  padding: 0.65rem 0.8rem;
+  max-width: 100%;
 }
 
 .auth-field input:focus {
@@ -2385,7 +2398,7 @@ button {
 .auth-item-form {
   margin-top: 0.9rem;
   display: grid;
-  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.7rem;
 }
 
@@ -2424,8 +2437,18 @@ button {
 .auth-catalog-filters {
   margin-top: 0.8rem;
   display: grid;
-  grid-template-columns: 220px 1fr;
+  grid-template-columns: minmax(0, 220px) minmax(0, 1fr);
   gap: 0.7rem;
+}
+
+.auth-item-form .auth-field,
+.auth-catalog-filters .auth-field {
+  min-width: 0;
+}
+
+.auth-item-form .auth-field-full,
+.auth-catalog-filters .auth-field-full {
+  grid-column: 1 / -1;
 }
 .auth-field select {
   border: 1.5px solid rgba(113, 84, 176, 0.2);
@@ -2709,6 +2732,11 @@ button {
     grid-template-columns: 1fr;
   }
 
+  .auth-item-form .auth-field,
+  .auth-catalog-filters .auth-field {
+    min-width: 0;
+  }
+
   .auth-toast {
     right: 12px;
     left: 12px;
@@ -2751,6 +2779,15 @@ button {
   .contact-form-actions {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .auth-compact-card,
+  .auth-form-shell,
+  .auth-admin-manager,
+  .auth-admin-section,
+  .auth-mobile-shell {
+    max-width: 100%;
+    overflow-x: hidden;
   }
 }
 
