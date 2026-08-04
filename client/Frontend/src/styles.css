@@ -3438,8 +3438,8 @@ button {
 }
 
 body[data-theme='dark'] {
-  background: #120e11;
-  color: #f6e8eb;
+  background: #0f0f10;
+  color: #f4efec;
 }
 
 body[data-theme='dark'] .welcome-screen,
@@ -3450,11 +3450,11 @@ body[data-theme='dark'] .category-detail-page,
 body[data-theme='dark'] .auth-page,
 body[data-theme='dark'] .contact-page {
   background:
-    radial-gradient(circle at 18% 16%, rgba(126, 35, 57, 0.22), transparent 22%),
-    radial-gradient(circle at 78% 26%, rgba(88, 28, 49, 0.18), transparent 20%),
-    radial-gradient(circle at 52% 70%, rgba(143, 48, 72, 0.1), transparent 26%),
-    linear-gradient(140deg, #100c0f 0%, #161013 44%, #1b1318 100%);
-  color: #f6e8eb;
+    radial-gradient(circle at 18% 14%, rgba(255, 255, 255, 0.07), transparent 18%),
+    radial-gradient(circle at 82% 22%, rgba(207, 227, 255, 0.06), transparent 18%),
+    radial-gradient(circle at 52% 72%, rgba(255, 244, 214, 0.05), transparent 24%),
+    linear-gradient(140deg, #09090a 0%, #101113 42%, #141518 100%);
+  color: #f4efec;
 }
 
 body[data-theme='dark'] .blob {
@@ -3462,11 +3462,11 @@ body[data-theme='dark'] .blob {
 }
 
 body[data-theme='dark'] .theme-toggle {
-  color: #ffd7ab;
+  color: #f6eee6;
 }
 
 body[data-theme='dark'] .logo::after {
-  color: #ffb347;
+  color: #ffd56e;
 }
 
 body[data-theme='dark'] .hero-card,
@@ -3494,9 +3494,9 @@ body[data-theme='dark'] .category-catalogue-row,
 body[data-theme='dark'] .product-modal,
 body[data-theme='dark'] .arc-stage,
 body[data-theme='dark'] .arc-footer {
-  background: linear-gradient(160deg, rgba(33, 22, 27, 0.96), rgba(22, 16, 20, 0.96));
-  border-color: rgba(155, 79, 96, 0.28);
-  box-shadow: 0 28px 60px rgba(0, 0, 0, 0.4);
+  background: linear-gradient(160deg, rgba(23, 23, 26, 0.97), rgba(15, 15, 18, 0.97));
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 28px 60px rgba(0, 0, 0, 0.42);
 }
 
 body[data-theme='dark'] .hero-card h1,
@@ -3518,7 +3518,7 @@ body[data-theme='dark'] .saved-empty-state h2,
 body[data-theme='dark'] .auth-compact-card h2,
 body[data-theme='dark'] .auth-mobile-headline h1,
 body[data-theme='dark'] .auth-profile-card h2 {
-  color: #fff0f3;
+  color: #fff7f2;
 }
 
 body[data-theme='dark'] .hero-card p,
@@ -3554,7 +3554,7 @@ body[data-theme='dark'] .category-card-body p,
 body[data-theme='dark'] .category-sale-pill,
 body[data-theme='dark'] .page-links button,
 body[data-theme='dark'] .nav-links button {
-  color: #dfc4cb;
+  color: #d7d1ce;
 }
 
 body[data-theme='dark'] .page-links,
@@ -3563,12 +3563,19 @@ body[data-theme='dark'] .saved-qty-control,
 body[data-theme='dark'] .product-qty-control,
 body[data-theme='dark'] .arc-info,
 body[data-theme='dark'] .startshopping-summary {
-  background: rgba(37, 25, 31, 0.92);
-  border-color: rgba(155, 79, 96, 0.24);
+  background: rgba(24, 24, 27, 0.92);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+body[data-theme='dark'] .page-links {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  backdrop-filter: none;
 }
 
 body[data-theme='dark'] .nav-toggle {
-  background: rgba(34, 24, 29, 0.95);
+  background: rgba(24, 24, 27, 0.96);
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.34);
 }
 
@@ -3596,9 +3603,9 @@ body[data-theme='dark'] .row-nav-btn,
 body[data-theme='dark'] .scroll-arrow,
 body[data-theme='dark'] .gallery-sidebar-btn,
 body[data-theme='dark'] .auth-login-menu-item {
-  background: rgba(47, 31, 38, 0.95);
-  color: #f4e7ea;
-  border-color: rgba(177, 91, 111, 0.45);
+  background: rgba(28, 28, 32, 0.96);
+  color: #f4efec;
+  border-color: rgba(255, 255, 255, 0.09);
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
 }
 
@@ -3626,8 +3633,8 @@ body[data-theme='dark'] .scroll-arrow:hover,
 body[data-theme='dark'] .gallery-sidebar-btn:hover,
 body[data-theme='dark'] .gallery-sidebar-btn.active,
 body[data-theme='dark'] .auth-login-menu-item:hover {
-  background: linear-gradient(135deg, #8d2f4a, #642331);
-  color: #fff1f3;
+  background: linear-gradient(135deg, #f2ebe3, #d9d1ca);
+  color: #111113;
   border-color: transparent;
 }
 
@@ -3635,8 +3642,8 @@ body[data-theme='dark'] .primary-button,
 body[data-theme='dark'] .continue-shopping-btn,
 body[data-theme='dark'] .auth-solid-action,
 body[data-theme='dark'] .footer-whatsapp-button {
-  background: linear-gradient(135deg, #8e3147, #64212d);
-  color: #fff3f5;
+  background: linear-gradient(135deg, #f1ebe5, #d8d1cb);
+  color: #111113;
   box-shadow: 0 12px 26px rgba(0, 0, 0, 0.34);
 }
 
@@ -3644,18 +3651,19 @@ body[data-theme='dark'] .primary-button:hover,
 body[data-theme='dark'] .continue-shopping-btn:hover,
 body[data-theme='dark'] .auth-solid-action:hover,
 body[data-theme='dark'] .footer-whatsapp-button:hover {
+  background: linear-gradient(135deg, #fff7f1, #e2dbd5);
   box-shadow: 0 16px 30px rgba(0, 0, 0, 0.42);
 }
 
 body[data-theme='dark'] .profile-button.logged-in {
-  border-color: #b15b6f;
-  color: #ffdce3;
-  background: rgba(49, 31, 38, 0.92);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #f9f2ec;
+  background: rgba(28, 28, 32, 0.96);
 }
 
 body[data-theme='dark'] .profile-dot {
-  background: #ff759a;
-  box-shadow: 0 0 0 3px rgba(255, 117, 154, 0.18);
+  background: #ff7da6;
+  box-shadow: 0 0 0 3px rgba(255, 125, 166, 0.16);
 }
 
 body[data-theme='dark'] .hero-image-placeholder,
@@ -3664,8 +3672,8 @@ body[data-theme='dark'] .saved-item-image,
 body[data-theme='dark'] .category-card-image,
 body[data-theme='dark'] .product-modal-main-image,
 body[data-theme='dark'] .arc-img {
-  background: linear-gradient(145deg, #24181d, #2c1d23);
-  border-color: rgba(177, 91, 111, 0.22);
+  background: linear-gradient(145deg, #17171a, #202126);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 body[data-theme='dark'] .product-modal-overlay {
@@ -3673,50 +3681,89 @@ body[data-theme='dark'] .product-modal-overlay {
 }
 
 body[data-theme='dark'] .product-modal-close {
-  background: rgba(177, 91, 111, 0.18);
-  color: #fff0f3;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff7f2;
+}
+
+body[data-theme='dark'] .arc-name {
+  background: rgba(244, 238, 231, 0.94);
+  color: #111113;
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.22);
+}
+
+body[data-theme='dark'] .arc-name:hover {
+  color: #111113;
+}
+
+body[data-theme='dark'] .arc-info {
+  background: rgba(20, 20, 23, 0.96);
+}
+
+body[data-theme='dark'] .arc-link {
+  color: #f6f0e9;
+}
+
+body[data-theme='dark'] .arc-link:hover {
+  color: #ffffff;
 }
 
 body[data-theme='dark'] .contact-quick-whatsapp {
-  background: rgba(61, 36, 45, 0.88);
-  border-color: rgba(177, 91, 111, 0.26);
+  background: rgba(22, 22, 25, 0.94);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 body[data-theme='dark'] .contact-whatsapp-icon,
 body[data-theme='dark'] .contact-whatsapp-button,
+body[data-theme='dark'] .footer-whatsapp-number {
+  color: #25d366;
+}
+
+body[data-theme='dark'] .contact-whatsapp-button {
+  border-color: #25d366;
+  color: #25d366;
+}
+
+body[data-theme='dark'] .contact-whatsapp-button:hover {
+  background: #25d366;
+  color: #08110c;
+  border-color: #25d366;
+}
+
+body[data-theme='dark'] .contact-whatsapp-title,
+body[data-theme='dark'] .contact-whatsapp-title span,
+body[data-theme='dark'] .contact-whatsapp-title strong,
 body[data-theme='dark'] .arrival-price,
 body[data-theme='dark'] .saved-item-price,
 body[data-theme='dark'] .product-modal-price,
-body[data-theme='dark'] .footer-whatsapp-number,
 body[data-theme='dark'] .auth-session-note,
 body[data-theme='dark'] .category-admin-note {
-  color: #ff9ab3;
+  color: #f0e9e3;
 }
 
 body[data-theme='dark'] .auth-field input,
 body[data-theme='dark'] .auth-field select,
 body[data-theme='dark'] .contact-field input,
 body[data-theme='dark'] .contact-field textarea {
-  background: rgba(22, 15, 19, 0.96);
-  border-color: rgba(177, 91, 111, 0.3);
-  color: #fff3f5;
+  background: rgba(18, 18, 21, 0.96);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #fff6f0;
 }
 
 body[data-theme='dark'] .auth-field input::placeholder,
 body[data-theme='dark'] .contact-field input::placeholder,
 body[data-theme='dark'] .contact-field textarea::placeholder {
-  color: rgba(242, 208, 216, 0.82);
+  color: rgba(225, 216, 208, 0.72);
 }
 
 body[data-theme='dark'] .auth-field select option {
-  background: #1e1519;
-  color: #fff2f4;
+  background: #141417;
+  color: #fff4ef;
 }
 
 body[data-theme='dark'] .site-footer {
-  background: #0d0a0c;
-  color: #ebd7db;
-  border-top: 1px solid rgba(177, 91, 111, 0.2);
+  background: #0a0a0b;
+  color: #ebe2dc;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 body[data-theme='dark'] .site-footer-links button,
@@ -3724,12 +3771,21 @@ body[data-theme='dark'] .site-footer-links p,
 body[data-theme='dark'] .site-footer-brand p,
 body[data-theme='dark'] .site-footer-whatsapp p,
 body[data-theme='dark'] .site-footer-bottom p {
-  color: rgba(235, 215, 219, 0.82);
+  color: rgba(235, 226, 220, 0.82);
 }
 
 body[data-theme='dark'] .site-footer-links h3,
 body[data-theme='dark'] .site-footer-whatsapp h3 {
-  color: #ffb2c4;
+  color: #fff4ef;
+}
+
+@media (max-width: 1180px) {
+  body[data-theme='dark'] .page-links {
+    background: rgba(18, 18, 21, 0.96);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.38);
+    backdrop-filter: blur(16px);
+  }
 }
 
 @media (max-width: 1180px) {
