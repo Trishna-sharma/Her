@@ -9,42 +9,21 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import nodemailer from 'nodemailer';
-import fs from 'fs';
 
 import User from './user.js';
+import cloudinary from './cloudinary.js';
 
-// Configure directory path for ES Modules
+// Load environment variables locally
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load environment variables locally
 dotenv.config({ path: path.join(__dirname, 'backend.env') });
 
 const app = express();
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-const uploadsDir = path.join(__dirname, '..', 'Frontend', 'public', 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
-
-const uploadStorage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, uploadsDir),
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname || '').toLowerCase();
-    const base = path
-      .basename(file.originalname || 'image', ext)
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '')
-      .slice(0, 48) || 'image';
-
-    cb(null, `${Date.now()}-${base}${ext || '.jpg'}`);
-  },
-});
-
 const uploadImage = multer({
-  storage: uploadStorage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
@@ -58,7 +37,6 @@ const uploadImage = multer({
 
 // Middleware
 app.use(express.json());
-app.use('/uploads', express.static(uploadsDir));
 
 // CORS Setup
 const allowedOrigins = [
@@ -193,18 +171,30 @@ app.post('/api/uploads/image', (req, res) => {
       return res.status(400).json({ message: 'No image file provided.' });
     }
 
-    const protocol = req.headers['x-forwarded-proto'] || req.protocol;
-    const host = req.get('host');
-    const publicPath = `/uploads/${req.file.filename}`;
-    const url = `${protocol}://${host}${publicPath}`;
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        folder: 'her-by-mou/items',
+        resource_type: 'image',
+      },
+      (uploadError, result) => {
+        if (uploadError) {
+          return res.status(500).json({
+            message: 'Cloudinary upload failed.',
+            error: uploadError.message,
+          });
+        }
 
-    return res.status(201).json({
-      message: 'Image uploaded successfully.',
-      path: publicPath,
-      url,
-      filename: req.file.filename,
-      size: req.file.size,
-    });
+        return res.status(201).json({
+          message: 'Image uploaded successfully.',
+          url: result?.secure_url,
+          publicId: result?.public_id,
+          filename: req.file.originalname,
+          size: req.file.size,
+        });
+      }
+    );
+
+    stream.end(req.file.buffer);
   });
 });
 
