@@ -3758,13 +3758,58 @@ button {
   .contact-field textarea {
     background: rgba(20, 14, 16, 0.9);
     border-color: rgba(183, 111, 101, 0.3);
-    color: #f3e7e4;
+    color: #fff6f4;
+  }
+
+  .auth-compact-card .auth-field input,
+  .auth-mobile-shell .auth-field input,
+  .auth-item-form .auth-field input,
+  .auth-item-form .auth-field select,
+  .auth-catalog-filters .auth-field select {
+    background: rgba(22, 15, 18, 0.96);
+    border-color: rgba(183, 111, 101, 0.38);
+    color: #fff6f4;
   }
 
   .auth-field input::placeholder,
   .contact-field input::placeholder,
   .contact-field textarea::placeholder {
-    color: rgba(231, 194, 190, 0.66);
+    color: rgba(246, 216, 212, 0.86);
+  }
+
+  .auth-compact-card .auth-field input::placeholder,
+  .auth-mobile-shell .auth-field input::placeholder,
+  .auth-item-form .auth-field input::placeholder {
+    color: rgba(246, 216, 212, 0.9);
+  }
+
+  .auth-admin-manager h2,
+  .auth-admin-section summary,
+  .auth-item-card h3,
+  .auth-headline h2 {
+    color: #f5e4e0;
+  }
+
+  .auth-admin-head p,
+  .auth-profile-card p,
+  .auth-checkline,
+  .auth-switch-row,
+  .auth-catalog-meta p,
+  .auth-catalog-meta small {
+    color: #dfc5c1;
+  }
+
+  .auth-field select option {
+    background: #1d1417;
+    color: #fff2ef;
+  }
+
+  .auth-field input:-webkit-autofill,
+  .auth-field input:-webkit-autofill:hover,
+  .auth-field input:-webkit-autofill:focus {
+    -webkit-text-fill-color: #fff6f4;
+    -webkit-box-shadow: 0 0 0 1000px #1d1417 inset;
+    box-shadow: 0 0 0 1000px #1d1417 inset;
   }
 
   .auth-field input:focus,
