@@ -4,7 +4,7 @@ import AuthStatusButton from './AuthStatusButton.jsx';
 
 const images = [
   'new-arrival.png',
-  'new-arrival.png',
+  'new-arrival(1).jpg',
   'new-arrival.png',
   'new-arrival.png',
   'new-arrival.png',

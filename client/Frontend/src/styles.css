@@ -3333,3 +3333,302 @@ button {
   }
 }
 
+/* ============================================================
+   DARK MODE THEME
+   Matte black base + warm luxury accents for fashion storefront
+   ============================================================ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+  }
+
+  body {
+    background: #101113;
+    color: #e8e4dc;
+  }
+
+  .welcome-screen,
+  .category-page,
+  .gallery-page,
+  .startshopping-page,
+  .category-detail-page,
+  .auth-page,
+  .contact-page {
+    background:
+      radial-gradient(circle at 8% 12%, rgba(196, 157, 90, 0.12), transparent 32%),
+      radial-gradient(circle at 88% 18%, rgba(92, 128, 165, 0.14), transparent 36%),
+      linear-gradient(145deg, #121315 0%, #17191d 45%, #1a1c20 100%);
+    color: #e8e4dc;
+  }
+
+  .hero-card,
+  .category-panel,
+  .category-hero,
+  .arrival-card,
+  .gallery-sidebar,
+  .gallery-main,
+  .startshopping-hero,
+  .saved-items-panel,
+  .saved-item-card,
+  .auth-headline,
+  .auth-mobile-shell,
+  .auth-compact-card,
+  .auth-form-shell,
+  .auth-admin-manager,
+  .auth-admin-section,
+  .auth-item-card,
+  .auth-catalog-card,
+  .contact-form-shell,
+  .contact-form-card,
+  .category-detail-hero,
+  .category-card,
+  .category-catalogue-row,
+  .product-modal,
+  .arc-stage,
+  .arc-footer {
+    background: linear-gradient(160deg, rgba(28, 30, 34, 0.96), rgba(21, 23, 27, 0.94));
+    border-color: rgba(214, 178, 112, 0.2);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+  }
+
+  .hero-copy .eyebrow,
+  .sidebar-label,
+  .gallery-main-meta,
+  .startshopping-eyebrow,
+  .contact-field span,
+  .auth-field span,
+  .category-detail-subtitle,
+  .category-catalogue-row-head span,
+  .product-modal-row,
+  .gallery-section-count,
+  .arc-link,
+  .arc-name,
+  .saved-item-meta,
+  .auth-form-shell p,
+  .auth-admin-manager p,
+  .auth-catalog-meta p,
+  .auth-catalog-meta small,
+  .contact-form-head p,
+  .category-detail-description,
+  .hero-card p,
+  .category-hero > .hero-copy > p {
+    color: #b8c0ce;
+  }
+
+  .hero-card h1,
+  .category-hero h1,
+  .gallery-main h2,
+  .startshopping-hero h1,
+  .contact-hero h1,
+  .contact-form-head h2,
+  .auth-headline h1,
+  .category-detail-hero h1,
+  .category-card-body h2,
+  .saved-item-body h2,
+  .product-modal-content h3,
+  .gallery-section-header h2,
+  .category-catalogue-row-head h2,
+  .auth-item-card h3,
+  .auth-catalog-meta h3,
+  .saved-empty-state h2 {
+    color: #f5efe2;
+  }
+
+  .nav-links a,
+  .page-links a,
+  .nav-links button,
+  .page-links button,
+  .auth-profile-card p,
+  .saved-empty-state p,
+  .saved-item-meta,
+  .gallery-main-count,
+  .category-detail-inline-count,
+  .auth-switch-row,
+  .auth-mobile-headline p,
+  .auth-main,
+  .auth-main-compact,
+  .contact-whatsapp-title,
+  .contact-whatsapp-title span,
+  .category-sale-pill {
+    color: #d6d0c4;
+  }
+
+  .nav-links a.active,
+  .nav-links a:hover,
+  .page-links a:hover,
+  .nav-links button:hover,
+  .page-links button:hover,
+  .arc-link:hover,
+  .arc-name:hover {
+    color: #e3be74;
+  }
+
+  .page-links .nav-link,
+  .nav-links .nav-link,
+  .login-button,
+  .secondary-button,
+  .gallery-jump-pill,
+  .category-back-btn,
+  .product-chip,
+  .auth-role-tab,
+  .startshopping-tab,
+  .category-detail-tab,
+  .wishlist-btn,
+  .auth-small-logout,
+  .startshopping-remove,
+  .arr-arrow,
+  .arc-btn,
+  .row-nav-btn,
+  .scroll-arrow {
+    background: rgba(26, 28, 32, 0.96);
+    border-color: rgba(227, 190, 116, 0.55);
+    color: #f2e8d8;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+  }
+
+  .page-links .nav-link:hover,
+  .nav-links .nav-link:hover,
+  .login-button:hover,
+  .secondary-button:hover,
+  .gallery-jump-pill:hover,
+  .category-back-btn:hover,
+  .product-chip:hover,
+  .auth-role-tab:hover,
+  .startshopping-tab:hover,
+  .category-detail-tab:hover,
+  .wishlist-btn:hover,
+  .arr-arrow:hover,
+  .arc-btn:hover,
+  .row-nav-btn:hover,
+  .scroll-arrow:hover {
+    background: linear-gradient(135deg, #c49d5a, #aa8348);
+    color: #16181b;
+    border-color: transparent;
+  }
+
+  .page-links .nav-link.active,
+  .startshopping-tab.active,
+  .category-detail-tab.active,
+  .auth-role-tab.active,
+  .product-chip.active,
+  .wishlist-btn.active {
+    background: linear-gradient(135deg, #c49d5a, #aa8348);
+    color: #151618;
+    border-color: transparent;
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.42);
+  }
+
+  .primary-button,
+  .continue-shopping-btn,
+  .auth-solid-action,
+  .footer-whatsapp-button {
+    background: linear-gradient(135deg, #3d6f61, #315b50);
+    color: #f7f3ec;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+  }
+
+  .primary-button:hover,
+  .continue-shopping-btn:hover,
+  .auth-solid-action:hover,
+  .footer-whatsapp-button:hover {
+    background: linear-gradient(135deg, #4a8373, #3a6a5d);
+  }
+
+  .profile-button.logged-in {
+    border-color: #70bca6;
+    color: #a8dbc9;
+    background: rgba(30, 44, 41, 0.9);
+  }
+
+  .profile-dot {
+    background: #6dc6a4;
+    box-shadow: 0 0 0 3px rgba(109, 198, 164, 0.22);
+  }
+
+  .hero-image-placeholder,
+  .arrival-slide,
+  .saved-item-image,
+  .category-card-image,
+  .product-modal-main-image,
+  .arc-img {
+    background: linear-gradient(145deg, #1f2024, #272a30);
+    border-color: rgba(227, 190, 116, 0.18);
+  }
+
+  .product-modal-overlay {
+    background: rgba(7, 8, 10, 0.78);
+  }
+
+  .product-modal-close {
+    background: rgba(227, 190, 116, 0.14);
+    color: #f2e8d8;
+  }
+
+  .auth-login-menu {
+    background: rgba(22, 24, 28, 0.96);
+    border-color: rgba(227, 190, 116, 0.26);
+    box-shadow: 0 16px 38px rgba(0, 0, 0, 0.45);
+  }
+
+  .auth-login-menu-item {
+    background: rgba(44, 36, 21, 0.52);
+    color: #f2e8d8;
+  }
+
+  .auth-login-menu-item:hover {
+    background: rgba(87, 69, 36, 0.7);
+  }
+
+  .contact-quick-whatsapp {
+    background: rgba(35, 75, 59, 0.35);
+    border-color: rgba(90, 186, 143, 0.55);
+  }
+
+  .contact-whatsapp-icon,
+  .contact-whatsapp-button,
+  .arrival-price,
+  .saved-item-price,
+  .product-modal-price,
+  .footer-whatsapp-number,
+  .auth-session-note,
+  .category-admin-note {
+    color: #8ad7bc;
+  }
+
+  .site-footer {
+    background: #0c0d10;
+    color: #dcd4c8;
+    border-top: 1px solid rgba(227, 190, 116, 0.15);
+  }
+
+  .site-footer-links button,
+  .site-footer-links p,
+  .site-footer-brand p,
+  .site-footer-whatsapp p,
+  .site-footer-bottom p {
+    color: rgba(232, 226, 213, 0.84);
+  }
+
+  .site-footer-links h3,
+  .site-footer-whatsapp h3 {
+    color: #e6c98f;
+  }
+
+  .auth-field input,
+  .auth-field select,
+  .contact-field input,
+  .contact-field textarea {
+    background: rgba(14, 16, 20, 0.9);
+    border-color: rgba(227, 190, 116, 0.28);
+    color: #efe8db;
+  }
+
+  .auth-field input:focus,
+  .auth-field select:focus,
+  .contact-field input:focus,
+  .contact-field textarea:focus {
+    border-color: rgba(227, 190, 116, 0.72);
+    box-shadow: 0 0 0 3px rgba(227, 190, 116, 0.18);
+  }
+}
+
