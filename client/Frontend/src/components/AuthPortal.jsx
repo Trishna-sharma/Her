@@ -393,36 +393,56 @@ export default function AuthPortal({
 
     const rawBase = import.meta.env.VITE_API_URL || 'https://her-by-mou-backend.vercel.app';
     const apiBase = rawBase.replace(/\/+$/, '');
+    const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || '';
 
     try {
       setIsUploadingItemImage(true);
       setNotice('Uploading image...');
 
-      const signatureResponse = await axios.get(`${apiBase}/api/uploads/cloudinary-signature`);
-      const {
-        cloudName,
-        apiKey,
-        signature,
-        timestamp,
-        folder,
-        uploadUrl,
-      } = signatureResponse.data || {};
-
-      if (!cloudName || !apiKey || !signature || !timestamp || !folder || !uploadUrl) {
-        setNotice('Cloudinary signature data is missing.');
-        return;
-      }
-
       const payload = new FormData();
       payload.append('file', file);
-      payload.append('api_key', apiKey);
-      payload.append('timestamp', String(timestamp));
-      payload.append('signature', signature);
-      payload.append('folder', folder);
 
-      const response = await axios.post(uploadUrl, payload, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      let response;
+
+      if (uploadPreset) {
+        const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+        if (!cloudName) {
+          setNotice('Cloudinary cloud name is missing in frontend env.');
+          return;
+        }
+
+        payload.append('upload_preset', uploadPreset);
+
+        response = await axios.post(
+          `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+          payload,
+          { headers: { 'Content-Type': 'multipart/form-data' } }
+        );
+      } else {
+        const signatureResponse = await axios.get(`${apiBase}/api/uploads/cloudinary-signature`);
+        const {
+          cloudName,
+          apiKey,
+          signature,
+          timestamp,
+          folder,
+          uploadUrl,
+        } = signatureResponse.data || {};
+
+        if (!cloudName || !apiKey || !signature || !timestamp || !folder || !uploadUrl) {
+          setNotice('Cloudinary signature data is missing.');
+          return;
+        }
+
+        payload.append('api_key', apiKey);
+        payload.append('timestamp', String(timestamp));
+        payload.append('signature', signature);
+        payload.append('folder', folder);
+
+        response = await axios.post(uploadUrl, payload, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+      }
 
       const imageUrl = response?.data?.url;
       const secureUrl = response?.data?.secure_url || imageUrl;
@@ -694,15 +714,6 @@ export default function AuthPortal({
             </select>
           </label>
           <label className="auth-field auth-field-full">
-            <span>Image path</span>
-            <input
-              type="text"
-              placeholder="new-arrival.png"
-              value={itemForm.image}
-              onChange={(event) => setItemForm((prev) => ({ ...prev, image: event.target.value }))}
-            />
-          </label>
-          <label className="auth-field auth-field-full">
             <span>Upload image (max 10MB)</span>
             <input
               type="file"
@@ -711,6 +722,9 @@ export default function AuthPortal({
               disabled={isUploadingItemImage}
             />
           </label>
+          <p className="auth-upload-hint auth-field-full">
+            The file uploads straight to Cloudinary and the returned image URL is saved automatically.
+          </p>
           <div className="auth-actions auth-field-full">
             <button type="submit" className="primary-button" disabled={isUploadingItemImage}>
               {isUploadingItemImage ? 'Uploading image...' : 'Add item'}
