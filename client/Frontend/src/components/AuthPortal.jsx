@@ -393,29 +393,50 @@ export default function AuthPortal({
 
     const rawBase = import.meta.env.VITE_API_URL || 'https://her-by-mou-backend.vercel.app';
     const apiBase = rawBase.replace(/\/+$/, '');
-    const payload = new FormData();
-    payload.append('image', file);
 
     try {
       setIsUploadingItemImage(true);
       setNotice('Uploading image...');
 
-      const response = await axios.post(`${apiBase}/api/uploads/image`, payload, {
+      const signatureResponse = await axios.get(`${apiBase}/api/uploads/cloudinary-signature`);
+      const {
+        cloudName,
+        apiKey,
+        signature,
+        timestamp,
+        folder,
+        uploadUrl,
+      } = signatureResponse.data || {};
+
+      if (!cloudName || !apiKey || !signature || !timestamp || !folder || !uploadUrl) {
+        setNotice('Cloudinary signature data is missing.');
+        return;
+      }
+
+      const payload = new FormData();
+      payload.append('file', file);
+      payload.append('api_key', apiKey);
+      payload.append('timestamp', String(timestamp));
+      payload.append('signature', signature);
+      payload.append('folder', folder);
+
+      const response = await axios.post(uploadUrl, payload, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
       const imageUrl = response?.data?.url;
-      if (!imageUrl) {
+      const secureUrl = response?.data?.secure_url || imageUrl;
+      if (!secureUrl) {
         setNotice('Upload succeeded but no image URL was returned.');
         return;
       }
 
-      setItemForm((previous) => ({ ...previous, image: imageUrl }));
+      setItemForm((previous) => ({ ...previous, image: secureUrl }));
       setNotice('');
       showToast('Image uploaded and linked to item.', 'success');
     } catch (error) {
       console.error('Image upload failed:', error);
-      const message = error?.response?.data?.message || 'Image upload failed.';
+      const message = error?.response?.data?.message || error?.message || 'Image upload failed.';
       setNotice(message);
     } finally {
       setIsUploadingItemImage(false);

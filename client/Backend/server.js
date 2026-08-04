@@ -154,6 +154,24 @@ const sendOtpEmail = async (email, otp) => {
 
 // --- ROUTES ---
 
+app.get('/api/uploads/cloudinary-signature', (req, res) => {
+  const timestamp = Math.round(Date.now() / 1000);
+  const folder = 'her-by-mou/items';
+  const signature = cloudinary.utils.api_sign_request(
+    { timestamp, folder },
+    process.env.CLOUDINARY_API_SECRET
+  );
+
+  return res.json({
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+    apiKey: process.env.CLOUDINARY_API_KEY,
+    timestamp,
+    signature,
+    folder,
+    uploadUrl: `https://api.cloudinary.com/v1_1/${process.env.CLOUDINARY_CLOUD_NAME}/image/upload`,
+  });
+});
+
 app.post('/api/uploads/image', (req, res) => {
   uploadImage.single('image')(req, res, (error) => {
     if (error instanceof multer.MulterError) {

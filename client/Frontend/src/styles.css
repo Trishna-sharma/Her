@@ -2246,6 +2246,8 @@ button {
   border-radius: 28px;
   padding: 1.2rem;
   box-shadow: 0 24px 60px rgba(92, 60, 146, 0.08);
+  min-width: 0;
+  width: 100%;
 }
 
 .auth-form-shell h2,
@@ -2295,6 +2297,7 @@ button {
 .auth-field input[type='file'] {
   padding: 0.65rem 0.8rem;
   max-width: 100%;
+  width: 100%;
 }
 
 .auth-field input:focus {
@@ -2359,6 +2362,7 @@ button {
   justify-content: space-between;
   align-items: center;
   gap: 0.8rem;
+  flex-wrap: wrap;
 }
 .auth-admin-head p {
   margin: 0.3rem 0 0;
@@ -2369,6 +2373,8 @@ button {
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.7);
   padding: 0.7rem 0.85rem;
+  min-width: 0;
+  overflow-x: hidden;
 }
 .auth-admin-section summary {
   cursor: pointer;
@@ -2424,6 +2430,11 @@ button {
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.88);
   padding: 0.75rem 0.85rem;
+  min-width: 0;
+}
+
+.auth-item-card > div {
+  min-width: 0;
 }
 
 .auth-item-card h3 {
@@ -2471,12 +2482,25 @@ button {
   max-height: 460px;
   overflow: auto;
   padding-right: 0.15rem;
+  min-width: 0;
 }
 .auth-catalog-card {
   border: 1px solid rgba(113, 84, 176, 0.16);
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.88);
   padding: 0.75rem;
+  min-width: 0;
+}
+
+.auth-catalog-meta,
+.auth-catalog-meta h3,
+.auth-catalog-meta p,
+.auth-catalog-meta small,
+.auth-item-card p,
+.auth-admin-head > div,
+.auth-admin-section summary {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .auth-catalog-card.is-deleted {
   opacity: 0.72;
@@ -2496,6 +2520,7 @@ button {
   display: grid;
   grid-template-columns: repeat(3, minmax(140px, 1fr));
   gap: 0.6rem;
+  min-width: 0;
 }
 .auth-catalog-actions {
   margin-top: 0.2rem;
@@ -2728,6 +2753,17 @@ button {
     flex-direction: column;
   }
 
+  .auth-page,
+  .auth-main,
+  .auth-main-compact,
+  .auth-mobile-shell,
+  .auth-compact-card,
+  .auth-form-shell,
+  .auth-admin-manager {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
   .auth-item-form {
     grid-template-columns: 1fr;
   }
@@ -2751,6 +2787,13 @@ button {
   .auth-item-card {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .auth-item-card > div,
+  .auth-catalog-meta,
+  .auth-admin-head > div {
+    width: 100%;
+    min-width: 0;
   }
 
   .contact-main {
@@ -3796,6 +3839,7 @@ button {
     background: rgba(20, 14, 16, 0.9);
     border-color: rgba(183, 111, 101, 0.3);
     color: #fff6f4;
+    min-width: 0;
   }
 
   .auth-compact-card .auth-field input,
