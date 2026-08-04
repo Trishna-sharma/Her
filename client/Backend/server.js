@@ -1,6 +1,7 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
+import multer from 'multer';
 import { OAuth2Client } from 'google-auth-library';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
@@ -8,6 +9,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import nodemailer from 'nodemailer';
+import fs from 'fs';
 
 import User from './user.js';
 
@@ -21,8 +23,42 @@ dotenv.config({ path: path.join(__dirname, 'backend.env') });
 const app = express();
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
+const uploadsDir = path.join(__dirname, '..', 'Frontend', 'public', 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+const uploadStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, uploadsDir),
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname || '').toLowerCase();
+    const base = path
+      .basename(file.originalname || 'image', ext)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 48) || 'image';
+
+    cb(null, `${Date.now()}-${base}${ext || '.jpg'}`);
+  },
+});
+
+const uploadImage = multer({
+  storage: uploadStorage,
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (allowed.includes(file.mimetype)) {
+      cb(null, true);
+      return;
+    }
+    cb(new Error('Only JPG, PNG, WEBP, and GIF images are allowed.'));
+  },
+});
+
 // Middleware
 app.use(express.json());
+app.use('/uploads', express.static(uploadsDir));
 
 // CORS Setup
 const allowedOrigins = [
@@ -139,6 +175,38 @@ const sendOtpEmail = async (email, otp) => {
 };
 
 // --- ROUTES ---
+
+app.post('/api/uploads/image', (req, res) => {
+  uploadImage.single('image')(req, res, (error) => {
+    if (error instanceof multer.MulterError) {
+      if (error.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({ message: 'Image must be 10MB or smaller.' });
+      }
+      return res.status(400).json({ message: error.message || 'Upload failed.' });
+    }
+
+    if (error) {
+      return res.status(400).json({ message: error.message || 'Upload failed.' });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ message: 'No image file provided.' });
+    }
+
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+    const host = req.get('host');
+    const publicPath = `/uploads/${req.file.filename}`;
+    const url = `${protocol}://${host}${publicPath}`;
+
+    return res.status(201).json({
+      message: 'Image uploaded successfully.',
+      path: publicPath,
+      url,
+      filename: req.file.filename,
+      size: req.file.size,
+    });
+  });
+});
 
 // 1. Manual Login Route
 app.post('/api/auth/login', async (req, res) => {

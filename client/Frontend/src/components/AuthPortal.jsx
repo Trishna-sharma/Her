@@ -76,6 +76,7 @@ export default function AuthPortal({
   const [catalogueQuery, setCatalogueQuery] = useState('');
   const [catalogueCategoryFilter, setCatalogueCategoryFilter] = useState('All');
   const [drafts, setDrafts] = useState({});
+  const [isUploadingItemImage, setIsUploadingItemImage] = useState(false);
 
   const toastTimerRef = useRef(null);
 
@@ -373,6 +374,54 @@ export default function AuthPortal({
     showToast('Item added to website catalogue.', 'success');
   };
 
+  const handleItemImageUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      setNotice('Image must be 10MB or smaller.');
+      event.target.value = '';
+      return;
+    }
+
+    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!allowed.includes(file.type)) {
+      setNotice('Please upload JPG, PNG, WEBP, or GIF images only.');
+      event.target.value = '';
+      return;
+    }
+
+    const rawBase = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    const apiBase = rawBase.replace(/\/+$/, '');
+    const payload = new FormData();
+    payload.append('image', file);
+
+    try {
+      setIsUploadingItemImage(true);
+      setNotice('Uploading image...');
+
+      const response = await axios.post(`${apiBase}/api/uploads/image`, payload, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      const imageUrl = response?.data?.url;
+      if (!imageUrl) {
+        setNotice('Upload succeeded but no image URL was returned.');
+        return;
+      }
+
+      setItemForm((previous) => ({ ...previous, image: imageUrl }));
+      setNotice('');
+      showToast('Image uploaded and linked to item.', 'success');
+    } catch (error) {
+      const message = error?.response?.data?.message || 'Image upload failed.';
+      setNotice(message);
+    } finally {
+      setIsUploadingItemImage(false);
+      event.target.value = '';
+    }
+  };
+
   useEffect(() => {
     if (addItemSectionOptions.length === 0) return;
 
@@ -631,8 +680,19 @@ export default function AuthPortal({
               onChange={(event) => setItemForm((prev) => ({ ...prev, image: event.target.value }))}
             />
           </label>
+          <label className="auth-field auth-field-full">
+            <span>Upload image (max 10MB)</span>
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              onChange={handleItemImageUpload}
+              disabled={isUploadingItemImage}
+            />
+          </label>
           <div className="auth-actions auth-field-full">
-            <button type="submit" className="primary-button">Add item</button>
+            <button type="submit" className="primary-button" disabled={isUploadingItemImage}>
+              {isUploadingItemImage ? 'Uploading image...' : 'Add item'}
+            </button>
           </div>
         </form>
 
