@@ -50,6 +50,8 @@ export default function AuthPortal({
   onAuthChange,
   initialRole = 'admin',
   onClose = () => onNavigate('welcome'),
+  theme,
+  onToggleTheme,
 }) {
   const [role, setRole] = useState('admin');
   const [mode, setMode] = useState('login');
@@ -77,6 +79,7 @@ export default function AuthPortal({
   const [catalogueCategoryFilter, setCatalogueCategoryFilter] = useState('All');
   const [drafts, setDrafts] = useState({});
   const [isUploadingItemImage, setIsUploadingItemImage] = useState(false);
+  const [selectedUploadFileName, setSelectedUploadFileName] = useState('');
 
   const toastTimerRef = useRef(null);
 
@@ -378,9 +381,12 @@ export default function AuthPortal({
     const file = event.target.files?.[0];
     if (!file) return;
 
+    setSelectedUploadFileName(file.name || '');
+
     if (file.size > 10 * 1024 * 1024) {
       setNotice('Image must be 10MB or smaller.');
       event.target.value = '';
+      setSelectedUploadFileName('');
       return;
     }
 
@@ -388,6 +394,7 @@ export default function AuthPortal({
     if (!allowed.includes(file.type)) {
       setNotice('Please upload JPG, PNG, WEBP, or GIF images only.');
       event.target.value = '';
+      setSelectedUploadFileName('');
       return;
     }
 
@@ -452,6 +459,7 @@ export default function AuthPortal({
       }
 
       setItemForm((previous) => ({ ...previous, image: secureUrl }));
+      setSelectedUploadFileName('');
       setNotice('');
       showToast('Image uploaded and linked to item.', 'success');
     } catch (error) {
@@ -460,7 +468,6 @@ export default function AuthPortal({
       setNotice(message);
     } finally {
       setIsUploadingItemImage(false);
-      event.target.value = '';
     }
   };
 
@@ -722,6 +729,9 @@ export default function AuthPortal({
               disabled={isUploadingItemImage}
             />
           </label>
+          <p className="auth-upload-hint auth-field-full">
+            {selectedUploadFileName ? `Selected file: ${selectedUploadFileName}` : 'Choose a file to upload it directly to Cloudinary.'}
+          </p>
           <p className="auth-upload-hint auth-field-full">
             The file uploads straight to Cloudinary and the returned image URL is saved automatically.
           </p>
@@ -1052,7 +1062,7 @@ export default function AuthPortal({
           <span style={{ color: '#ffde59' }}>E</span>
           <span style={{ color: '#Ff66c4' }}>R</span>
         </button>
-        <Navigation onNavigate={onNavigate} activePage={activePage} />
+        <Navigation onNavigate={onNavigate} activePage={activePage} theme={theme} onToggleTheme={onToggleTheme} />
         {hasActiveSession ? (
           <AuthStatusButton authSession={authSession} onClick={onClose} menuEnabled={false} />
         ) : (

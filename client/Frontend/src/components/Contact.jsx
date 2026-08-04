@@ -20,7 +20,7 @@ function WhatsAppIcon() {
   );
 }
 
-export default function ContactPage({ onNavigate, activePage, onLoginClick, authSession }) {
+export default function ContactPage({ onNavigate, activePage, onLoginClick, authSession, theme, onToggleTheme }) {
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -61,7 +61,7 @@ export default function ContactPage({ onNavigate, activePage, onLoginClick, auth
           <span style={{ color: '#ffde59' }}>E</span>
           <span style={{ color: '#Ff66c4' }}>R</span>
         </button>
-        <Navigation onNavigate={onNavigate} activePage={activePage} />
+        <Navigation onNavigate={onNavigate} activePage={activePage} theme={theme} onToggleTheme={onToggleTheme} />
         <AuthStatusButton authSession={authSession} onClick={onLoginClick} />
       </header>
 

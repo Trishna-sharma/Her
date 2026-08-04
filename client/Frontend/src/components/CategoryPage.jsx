@@ -10,7 +10,7 @@ const images = [
   'new-arrival.png',
 ];
 
-export default function CategoryPage({ categories, onBack, onNavigate, activePage, onLoginClick, authSession }) {
+export default function CategoryPage({ categories, onBack, onNavigate, activePage, onLoginClick, authSession, theme, onToggleTheme }) {
   const scrollRef = useRef(null);
 
   const scroll = (direction) => {
@@ -30,7 +30,7 @@ export default function CategoryPage({ categories, onBack, onNavigate, activePag
           <span style={{ color: '#ffde59' }}>E</span>
           <span style={{ color: '#Ff66c4' }}>R</span>
         </button>
-        <Navigation onNavigate={onNavigate} activePage={activePage} />
+        <Navigation onNavigate={onNavigate} activePage={activePage} theme={theme} onToggleTheme={onToggleTheme} />
         <AuthStatusButton authSession={authSession} onClick={onLoginClick} />
       </header>
 
