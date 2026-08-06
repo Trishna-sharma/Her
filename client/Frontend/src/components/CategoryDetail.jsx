@@ -24,11 +24,14 @@ function buildProductDetails(item, rowTitle) {
     description:
       item.description ||
       `${item.name} is crafted for comfort and occasion wear with premium finishing, breathable fabric, and statement styling details.`,
-    colors: item.colors || defaultColors.slice(0, 3 + (nameSeed % 2)),
-    sizes: item.sizes || defaultSizes,
+    colors: Array.isArray(item.colors) && item.colors.length
+      ? item.colors
+      : defaultColors.slice(0, 3 + (nameSeed % 2)),
+    sizes: Array.isArray(item.sizes) && item.sizes.length ? item.sizes : defaultSizes,
     gallery: item.gallery || [item.img, item.img, item.img, item.img],
   };
 }
+
 
 function openWhatsApp(message) {
   const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;

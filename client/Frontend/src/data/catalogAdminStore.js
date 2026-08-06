@@ -167,21 +167,24 @@ export function mergeAdminItemsIntoSections(baseSections, category) {
   );
 
   scopedAdminItems.forEach((item) => {
-    const sectionName = String(item.section || 'Admin Picks').trim() || 'Admin Picks';
+  const sectionName = String(item.section || 'Admin Picks').trim() || 'Admin Picks';
 
-    if (!cloned[sectionName]) {
-      cloned[sectionName] = [];
-    }
+  if (!cloned[sectionName]) {
+    cloned[sectionName] = [];
+  }
 
-    cloned[sectionName].push({
-      id: `admin-${item.id}`,
-      name: item.name,
-      price: item.price,
-      img: getItemImage(item),
-      sizes: item.sizes || '',
-      isAdminCreated: true,
-    });
+  cloned[sectionName].push({
+    id: `admin-${item.id}`,
+    name: item.name,
+    price: item.price,
+    img: getItemImage(item),
+    sizes: String(item.sizes || '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean),
+    isAdminCreated: true,
   });
+});
 
   return cloned;
 }
