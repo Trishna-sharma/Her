@@ -174,16 +174,21 @@ export function mergeAdminItemsIntoSections(baseSections, category) {
   }
 
   cloned[sectionName].push({
-    id: `admin-${item.id}`,
-    name: item.name,
-    price: item.price,
-    img: getItemImage(item),
-    sizes: String(item.sizes || '')
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean),
-    isAdminCreated: true,
-  });
+  id: `admin-${item.id}`,
+  name: item.name,
+  price: item.price,
+  img: getItemImage(item),
+  sizes: String(item.sizes || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean),
+  colors: String(item.colors || '')
+    .split(',')
+    .map((c) => c.trim())
+    .filter(Boolean),
+  description: String(item.description || '').trim(),
+  isAdminCreated: true,
+});
 });
 
   return cloned;

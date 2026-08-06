@@ -67,13 +67,15 @@ export default function AuthPortal({
   const [userForm, setUserForm] = useState({ name: '', email: '', password: '' });
 
   const [itemForm, setItemForm] = useState({
-    name: '',
-    price: '',
-    sizes: '',
-    section: 'Admin Picks',
-    image: 'new-arrival.png',
-    category: 'Clothing',
-  });
+  name: '',
+  price: '',
+  sizes: '',
+  section: 'Admin Picks',
+  image: 'new-arrival.png',
+  category: 'Clothing',
+  description: '',
+  colors: '',
+});
 
   const [catalogueQuery, setCatalogueQuery] = useState('');
   const [catalogueCategoryFilter, setCatalogueCategoryFilter] = useState('All');
@@ -366,23 +368,28 @@ export default function AuthPortal({
     }
 
     addAdminItem({
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      name,
-      price,
-      sizes,
-      section: section || 'Admin Picks',
-      img: itemForm.image || 'new-arrival.png',
-      category,
-    });
+  id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+  name,
+  price,
+  sizes,
+  section: section || 'Admin Picks',
+  img: itemForm.image || 'new-arrival.png',
+  category,
+  description: String(itemForm.description || '').trim(),
+  colors: String(itemForm.colors || '').trim(),
+});
 
-    setItemForm({
-      name: '',
-      price: '',
-      sizes: '',
-      section: 'Admin Picks',
-      image: 'new-arrival.png',
-      category: 'Clothing',
-    });
+    
+      setItemForm({
+        name: '',
+        price: '',
+        sizes: '',
+        section: 'Admin Picks',
+        image: 'new-arrival.png',
+        category: 'Clothing',
+        description: '',
+        colors: '',
+      });
     setSelectedUploadFileName('');
     setInventoryVersion((value) => value + 1);
     setNotice('');
@@ -506,6 +513,8 @@ export default function AuthPortal({
       setIsUploadingItemImage(false);
     }
   };
+
+  
 
   useEffect(() => {
     if (addItemSectionOptions.length === 0) return;
@@ -734,6 +743,24 @@ export default function AuthPortal({
               onChange={(event) => setItemForm((prev) => ({ ...prev, sizes: event.target.value }))}
             />
           </label>
+          <label className="auth-field auth-field-full">
+  <span>Description (optional)</span>
+  <input
+    type="text"
+    placeholder="What makes this product worth buying"
+    value={itemForm.description}
+    onChange={(event) => setItemForm((prev) => ({ ...prev, description: event.target.value }))}
+  />
+</label>
+<label className="auth-field auth-field-full">
+  <span>Colors (optional, comma separated)</span>
+  <input
+    type="text"
+    placeholder="Leave blank if not applicable, e.g. skincare"
+    value={itemForm.colors}
+    onChange={(event) => setItemForm((prev) => ({ ...prev, colors: event.target.value }))}
+  />
+</label>
           <label className="auth-field">
             <span>Category</span>
             <select

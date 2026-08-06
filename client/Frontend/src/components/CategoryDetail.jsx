@@ -13,8 +13,6 @@ const WHATSAPP_NUMBER = '8801853314954';
 
 function buildProductDetails(item, rowTitle) {
   const nameSeed = item.name.length;
-  const defaultColors = ['Ivory', 'Rose', 'Emerald', 'Midnight'];
-  const defaultSizes = ['XS', 'S', 'M', 'L', 'XL'];
 
   return {
     ...item,
@@ -22,16 +20,13 @@ function buildProductDetails(item, rowTitle) {
     rating: item.rating || (4 + (nameSeed % 8) / 10),
     reviews: item.reviews || 80 + nameSeed * 3,
     description:
-      item.description ||
-      `${item.name} is crafted for comfort and occasion wear with premium finishing, breathable fabric, and statement styling details.`,
-    colors: Array.isArray(item.colors) && item.colors.length
-      ? item.colors
-      : defaultColors.slice(0, 3 + (nameSeed % 2)),
-    sizes: Array.isArray(item.sizes) && item.sizes.length ? item.sizes : defaultSizes,
+      (item.description && item.description.trim()) ||
+      `${item.name} is available now — reach out for full details on this item.`,
+    colors: Array.isArray(item.colors) && item.colors.length ? item.colors : [],
+    sizes: Array.isArray(item.sizes) && item.sizes.length ? item.sizes : [],
     gallery: item.gallery || [item.img, item.img, item.img, item.img],
   };
 }
-
 
 function openWhatsApp(message) {
   const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
@@ -139,8 +134,8 @@ export default function CategoryDetail({
     const built = buildProductDetails(item, rowTitle);
     setSelectedProduct(built);
     setSelectedImageIndex(0);
-    setSelectedColor(built.colors[0] || '');
-    setSelectedSize(built.sizes[0] || '');
+    setSelectedColor(built.colors[0] || 'Default');
+    setSelectedSize(built.sizes[0] || 'Default');
     setQuantity(1);
   };
 
@@ -391,37 +386,41 @@ export default function CategoryDetail({
                 </p>
                 <p className="product-modal-description">{selectedProduct.description}</p>
 
-                <div className="product-modal-block">
-                  <span>Colors</span>
-                  <div className="product-chip-list">
-                    {selectedProduct.colors.map((color) => (
-                      <button
-                        key={`${selectedProduct.name}-${color}`}
-                        type="button"
-                        className={`product-chip ${selectedColor === color ? 'active' : ''}`}
-                        onClick={() => setSelectedColor(color)}
-                      >
-                        {color}
-                      </button>
-                    ))}
+                {selectedProduct.colors.length > 0 && (
+                  <div className="product-modal-block">
+                    <span>Colors</span>
+                    <div className="product-chip-list">
+                      {selectedProduct.colors.map((color) => (
+                        <button
+                          key={`${selectedProduct.name}-${color}`}
+                          type="button"
+                          className={`product-chip ${selectedColor === color ? 'active' : ''}`}
+                          onClick={() => setSelectedColor(color)}
+                        >
+                          {color}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
 
-                <div className="product-modal-block">
-                  <span>Sizes</span>
-                  <div className="product-chip-list">
-                    {selectedProduct.sizes.map((size) => (
-                      <button
-                        key={`${selectedProduct.name}-${size}`}
-                        type="button"
-                        className={`product-chip ${selectedSize === size ? 'active' : ''}`}
-                        onClick={() => setSelectedSize(size)}
-                      >
-                        {size}
-                      </button>
-                    ))}
+                {selectedProduct.sizes.length > 0 && (
+                  <div className="product-modal-block">
+                    <span>Sizes</span>
+                    <div className="product-chip-list">
+                      {selectedProduct.sizes.map((size) => (
+                        <button
+                          key={`${selectedProduct.name}-${size}`}
+                          type="button"
+                          className={`product-chip ${selectedSize === size ? 'active' : ''}`}
+                          onClick={() => setSelectedSize(size)}
+                        >
+                          {size}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
 
                 <div className="product-modal-block">
                   <span>Quantity</span>
