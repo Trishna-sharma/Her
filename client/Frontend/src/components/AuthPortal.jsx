@@ -80,6 +80,7 @@ export default function AuthPortal({
   const [drafts, setDrafts] = useState({});
   const [isUploadingItemImage, setIsUploadingItemImage] = useState(false);
   const [selectedUploadFileName, setSelectedUploadFileName] = useState('');
+  const hasUploadedItemImage = itemForm.image && itemForm.image !== 'new-arrival.png';
 
   const toastTimerRef = useRef(null);
 
@@ -354,6 +355,16 @@ export default function AuthPortal({
       return;
     }
 
+    if (isUploadingItemImage) {
+      setNotice('Please wait until the image upload finishes.');
+      return;
+    }
+
+    if (selectedUploadFileName && !hasUploadedItemImage) {
+      setNotice('Image is selected but not uploaded yet. Upload must finish before adding item.');
+      return;
+    }
+
     addAdminItem({
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       name,
@@ -372,6 +383,7 @@ export default function AuthPortal({
       image: 'new-arrival.png',
       category: 'Clothing',
     });
+    setSelectedUploadFileName('');
     setInventoryVersion((value) => value + 1);
     setNotice('');
     showToast('Item added to website catalogue.', 'success');
@@ -402,53 +414,77 @@ export default function AuthPortal({
     const apiBase = rawBase.replace(/\/+$/, '');
     const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || '';
 
+    const createPayload = (fieldName) => {
+      const formData = new FormData();
+      formData.append(fieldName, file);
+      return formData;
+    };
+
     try {
       setIsUploadingItemImage(true);
       setNotice('Uploading image...');
 
-      const payload = new FormData();
-      payload.append('file', file);
-
       let response;
+      let lastError;
+      const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
 
-      if (uploadPreset) {
-        const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
-        if (!cloudName) {
-          setNotice('Cloudinary cloud name is missing in frontend env.');
-          return;
+      if (uploadPreset && cloudName) {
+        try {
+          const payload = createPayload('file');
+          payload.append('upload_preset', uploadPreset);
+
+          response = await axios.post(
+            `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+            payload,
+            { headers: { 'Content-Type': 'multipart/form-data' } }
+          );
+        } catch (error) {
+          lastError = error;
         }
+      }
 
-        payload.append('upload_preset', uploadPreset);
+      if (!response) {
+        try {
+          const signatureResponse = await axios.get(`${apiBase}/api/uploads/cloudinary-signature`);
+          const {
+            apiKey,
+            signature,
+            timestamp,
+            folder,
+            uploadUrl,
+          } = signatureResponse.data || {};
 
-        response = await axios.post(
-          `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-          payload,
-          { headers: { 'Content-Type': 'multipart/form-data' } }
-        );
-      } else {
-        const signatureResponse = await axios.get(`${apiBase}/api/uploads/cloudinary-signature`);
-        const {
-          cloudName,
-          apiKey,
-          signature,
-          timestamp,
-          folder,
-          uploadUrl,
-        } = signatureResponse.data || {};
+          if (!apiKey || !signature || !timestamp || !folder || !uploadUrl) {
+            throw new Error('Cloudinary signature data is missing.');
+          }
 
-        if (!cloudName || !apiKey || !signature || !timestamp || !folder || !uploadUrl) {
-          setNotice('Cloudinary signature data is missing.');
-          return;
+          const payload = createPayload('file');
+          payload.append('api_key', apiKey);
+          payload.append('timestamp', String(timestamp));
+          payload.append('signature', signature);
+          payload.append('folder', folder);
+
+          response = await axios.post(uploadUrl, payload, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+          });
+        } catch (error) {
+          lastError = error;
         }
+      }
 
-        payload.append('api_key', apiKey);
-        payload.append('timestamp', String(timestamp));
-        payload.append('signature', signature);
-        payload.append('folder', folder);
+      if (!response) {
+        try {
+          const payload = createPayload('image');
+          response = await axios.post(`${apiBase}/api/uploads/image`, payload, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+          });
+        } catch (error) {
+          lastError = error;
+        }
+      }
 
-        response = await axios.post(uploadUrl, payload, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
+      if (!response) {
+        throw lastError || new Error('Image upload failed.');
       }
 
       const imageUrl = response?.data?.url;
@@ -735,6 +771,14 @@ export default function AuthPortal({
           <p className="auth-upload-hint auth-field-full">
             The file uploads straight to Cloudinary and the returned image URL is saved automatically.
           </p>
+          <div className="auth-upload-preview auth-field-full">
+            <img src={itemForm.image || 'new-arrival.png'} alt="Selected item preview" />
+            <p>
+              {hasUploadedItemImage
+                ? 'Image linked successfully. You can add the item now.'
+                : 'No uploaded image linked yet. Default image will be used.'}
+            </p>
+          </div>
           <div className="auth-actions auth-field-full">
             <button type="submit" className="primary-button" disabled={isUploadingItemImage}>
               {isUploadingItemImage ? 'Uploading image...' : 'Add item'}
@@ -746,6 +790,9 @@ export default function AuthPortal({
           <div className="auth-item-list">
             {managedItems.map((item) => (
               <article key={item.id} className="auth-item-card">
+                <div className="auth-item-thumb">
+                  <img src={item.img || item.image || 'new-arrival.png'} alt={item.name} />
+                </div>
                 <div>
                   <h3>{item.name}</h3>
                   <p>{item.price} • Sizes: {item.sizes || 'N/A'}</p>

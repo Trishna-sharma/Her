@@ -2432,6 +2432,23 @@ button {
   min-width: 0;
 }
 
+.auth-item-thumb {
+  width: 68px;
+  height: 68px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(113, 84, 176, 0.18);
+  flex-shrink: 0;
+}
+
+.auth-item-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
 .auth-item-card > div {
   min-width: 0;
 }
@@ -2526,6 +2543,32 @@ button {
   display: flex;
   gap: 0.55rem;
   flex-wrap: wrap;
+}
+
+.auth-upload-preview {
+  display: flex;
+  align-items: center;
+  gap: 0.72rem;
+  padding: 0.62rem 0.68rem;
+  border: 1px solid rgba(113, 84, 176, 0.14);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.65);
+}
+
+.auth-upload-preview img {
+  width: 72px;
+  height: 72px;
+  border-radius: 12px;
+  object-fit: cover;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(113, 84, 176, 0.2);
+  flex-shrink: 0;
+}
+
+.auth-upload-preview p {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #5f4884;
 }
 .auth-catalog-actions .primary-button,
 .auth-catalog-actions .secondary-button,
@@ -3438,8 +3481,21 @@ button {
 }
 
 body[data-theme='dark'] {
+  position: relative;
   background: #0f0f10;
   color: #f4efec;
+}
+
+body[data-theme='dark']::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 108%, rgba(255, 255, 255, 0.07), transparent 46%),
+    radial-gradient(circle at 15% 86%, rgba(200, 224, 255, 0.05), transparent 34%),
+    radial-gradient(circle at 85% 90%, rgba(255, 246, 222, 0.045), transparent 36%);
+  z-index: 0;
 }
 
 body[data-theme='dark'] .welcome-screen,
@@ -3450,15 +3506,27 @@ body[data-theme='dark'] .category-detail-page,
 body[data-theme='dark'] .auth-page,
 body[data-theme='dark'] .contact-page {
   background:
-    radial-gradient(circle at 18% 14%, rgba(255, 255, 255, 0.07), transparent 18%),
-    radial-gradient(circle at 82% 22%, rgba(207, 227, 255, 0.06), transparent 18%),
-    radial-gradient(circle at 52% 72%, rgba(255, 244, 214, 0.05), transparent 24%),
+    radial-gradient(circle at 22% 12%, rgba(255, 255, 255, 0.035), transparent 16%),
+    radial-gradient(circle at 80% 18%, rgba(205, 225, 255, 0.03), transparent 15%),
+    radial-gradient(circle at 50% 68%, rgba(255, 244, 214, 0.028), transparent 20%),
     linear-gradient(140deg, #09090a 0%, #101113 42%, #141518 100%);
   color: #f4efec;
+  position: relative;
+  z-index: 1;
 }
 
 body[data-theme='dark'] .blob {
   display: none;
+}
+
+body[data-theme='dark'] .category-hero::before {
+  width: 180px;
+  height: 180px;
+  top: -56px;
+  right: -56px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0));
+  opacity: 0.24;
+  filter: blur(14px);
 }
 
 body[data-theme='dark'] .theme-toggle {
@@ -3517,7 +3585,10 @@ body[data-theme='dark'] .auth-catalog-meta h3,
 body[data-theme='dark'] .saved-empty-state h2,
 body[data-theme='dark'] .auth-compact-card h2,
 body[data-theme='dark'] .auth-mobile-headline h1,
-body[data-theme='dark'] .auth-profile-card h2 {
+body[data-theme='dark'] .auth-profile-card h2,
+body[data-theme='dark'] .auth-admin-manager h2,
+body[data-theme='dark'] .auth-admin-section summary,
+body[data-theme='dark'] .auth-headline h2 {
   color: #fff7f2;
 }
 
@@ -3552,9 +3623,26 @@ body[data-theme='dark'] .auth-checkline,
 body[data-theme='dark'] .contact-form-head p,
 body[data-theme='dark'] .category-card-body p,
 body[data-theme='dark'] .category-sale-pill,
+body[data-theme='dark'] .auth-item-card p,
+body[data-theme='dark'] .auth-upload-hint,
+body[data-theme='dark'] .auth-notice,
 body[data-theme='dark'] .page-links button,
 body[data-theme='dark'] .nav-links button {
-  color: #d7d1ce;
+  color: #e4dbd4;
+}
+
+body[data-theme='dark'] .auth-notice {
+  background: rgba(35, 27, 30, 0.94);
+  border-color: rgba(255, 163, 178, 0.24);
+  color: #ffd9e1;
+}
+
+body[data-theme='dark'] .auth-field span,
+body[data-theme='dark'] .auth-compact-card .auth-field span,
+body[data-theme='dark'] .auth-mobile-shell .auth-field span,
+body[data-theme='dark'] .auth-item-form .auth-field span,
+body[data-theme='dark'] .auth-catalog-filters .auth-field span {
+  color: #f1e7de;
 }
 
 body[data-theme='dark'] .page-links,
@@ -3700,11 +3788,12 @@ body[data-theme='dark'] .arc-info {
 }
 
 body[data-theme='dark'] .arc-link {
-  color: #f6f0e9;
+  color: #ffffff;
 }
 
 body[data-theme='dark'] .arc-link:hover {
   color: #ffffff;
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.22);
 }
 
 body[data-theme='dark'] .contact-quick-whatsapp {
@@ -3758,6 +3847,21 @@ body[data-theme='dark'] .contact-field textarea::placeholder {
 body[data-theme='dark'] .auth-field select option {
   background: #141417;
   color: #fff4ef;
+}
+
+body[data-theme='dark'] .auth-item-thumb,
+body[data-theme='dark'] .auth-upload-preview img {
+  background: rgba(20, 20, 23, 0.95);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+body[data-theme='dark'] .auth-upload-preview {
+  background: rgba(20, 20, 23, 0.82);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+body[data-theme='dark'] .auth-upload-preview p {
+  color: #efe4da;
 }
 
 body[data-theme='dark'] .site-footer {
