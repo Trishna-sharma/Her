@@ -14,6 +14,20 @@ function getItemImage(item) {
   return String(item?.img || item?.image || '').trim() || 'new-arrival.png';
 }
 
+function splitCommaList(value) {
+  return String(value || '')
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
+function getItemGallery(item) {
+  if (Array.isArray(item?.gallery) && item.gallery.length) {
+    return item.gallery.filter(Boolean);
+  }
+  return [getItemImage(item)];
+}
+
 function readStorage(key, fallback = []) {
   try {
     const raw = window.localStorage.getItem(key);
@@ -144,11 +158,15 @@ export function applyCatalogueItemState(meta, item) {
   const key = createCatalogueItemKey(meta);
   const override = getCatalogueItemOverride(meta);
   const deleted = isCatalogueItemDeleted(meta);
-
-  return {
+  const merged = {
     ...item,
     img: getItemImage(item),
     ...(override || {}),
+  };
+
+  return {
+    ...merged,
+    gallery: getItemGallery(merged),
     __catalogMeta: meta,
     __catalogKey: key,
     __originalName: meta.name,
@@ -167,29 +185,28 @@ export function mergeAdminItemsIntoSections(baseSections, category) {
   );
 
   scopedAdminItems.forEach((item) => {
-  const sectionName = String(item.section || 'Admin Picks').trim() || 'Admin Picks';
+    const sectionName = String(item.section || 'Admin Picks').trim() || 'Admin Picks';
 
-  if (!cloned[sectionName]) {
-    cloned[sectionName] = [];
-  }
+    if (!cloned[sectionName]) {
+      cloned[sectionName] = [];
+    }
 
-  cloned[sectionName].push({
-  id: `admin-${item.id}`,
-  name: item.name,
-  price: item.price,
-  img: getItemImage(item),
-  sizes: String(item.sizes || '')
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean),
-  colors: String(item.colors || '')
-    .split(',')
-    .map((c) => c.trim())
-    .filter(Boolean),
-  description: String(item.description || '').trim(),
-  isAdminCreated: true,
-});
-});
+    const mainImage = getItemImage(item);
+
+    cloned[sectionName].push({
+      id: `admin-${item.id}`,
+      name: item.name,
+      price: item.price,
+      img: mainImage,
+      sizes: splitCommaList(item.sizes),
+      colors: splitCommaList(item.colors),
+      description: String(item.description || '').trim(),
+      stock: item.stock !== undefined && item.stock !== null ? String(item.stock).trim() : '',
+      rating: item.rating !== undefined && item.rating !== null ? String(item.rating).trim() : '',
+      gallery: Array.isArray(item.gallery) && item.gallery.length ? item.gallery : [mainImage],
+      isAdminCreated: true,
+    });
+  });
 
   return cloned;
 }
@@ -267,6 +284,12 @@ export function listAllWebsiteItems() {
             price: liveItem.price,
             img: getItemImage(liveItem),
             saleTag: liveItem.saleTag || '',
+            description: liveItem.description || '',
+            colors: Array.isArray(liveItem.colors) ? liveItem.colors : [],
+            sizes: Array.isArray(liveItem.sizes) ? liveItem.sizes : [],
+            stock: liveItem.stock || '',
+            rating: liveItem.rating || '',
+            gallery: liveItem.gallery || [getItemImage(liveItem)],
             isDeleted: liveItem.isDeleted,
           });
         });

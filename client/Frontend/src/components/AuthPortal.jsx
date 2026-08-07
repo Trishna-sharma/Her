@@ -43,6 +43,46 @@ function normalizePrice(value) {
   return raw.startsWith('$') ? raw : `$${raw}`;
 }
 
+function splitCommaList(value) {
+  return String(value || '')
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
+async function uploadImageDirectToCloudinary(file) {
+  const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+  const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+
+  if (!cloudName || !uploadPreset) {
+    throw new Error('Cloudinary is not configured for gallery uploads.');
+  }
+
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', uploadPreset);
+
+  const response = await axios.post(
+    `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+    formData
+  );
+
+  const secureUrl = response?.data?.secure_url;
+  if (!secureUrl) {
+    throw new Error('Upload succeeded but no image URL was returned.');
+  }
+
+  return secureUrl;
+}
+
+function validateImageFile(file) {
+  if (!file) return 'No file selected.';
+  if (file.size > 10 * 1024 * 1024) return 'Image must be 10MB or smaller.';
+  const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+  if (!allowed.includes(file.type)) return 'Please upload JPG, PNG, WEBP, or GIF images only.';
+  return '';
+}
+
 export default function AuthPortal({
   onNavigate,
   activePage,
@@ -67,21 +107,26 @@ export default function AuthPortal({
   const [userForm, setUserForm] = useState({ name: '', email: '', password: '' });
 
   const [itemForm, setItemForm] = useState({
-  name: '',
-  price: '',
-  sizes: '',
-  section: 'Admin Picks',
-  image: 'new-arrival.png',
-  category: 'Clothing',
-  description: '',
-  colors: '',
-});
+    name: '',
+    price: '',
+    sizes: '',
+    section: 'Admin Picks',
+    image: 'new-arrival.png',
+    category: 'Clothing',
+    description: '',
+    colors: '',
+    stock: '',
+    rating: '',
+    gallery: [],
+  });
 
   const [catalogueQuery, setCatalogueQuery] = useState('');
   const [catalogueCategoryFilter, setCatalogueCategoryFilter] = useState('All');
   const [drafts, setDrafts] = useState({});
   const [isUploadingItemImage, setIsUploadingItemImage] = useState(false);
   const [selectedUploadFileName, setSelectedUploadFileName] = useState('');
+  const [isUploadingGalleryImage, setIsUploadingGalleryImage] = useState(false);
+  const [uploadingCatalogueGalleryKey, setUploadingCatalogueGalleryKey] = useState('');
   const hasUploadedItemImage = itemForm.image && itemForm.image !== 'new-arrival.png';
 
   const toastTimerRef = useRef(null);
@@ -357,7 +402,7 @@ export default function AuthPortal({
       return;
     }
 
-    if (isUploadingItemImage) {
+    if (isUploadingItemImage || isUploadingGalleryImage) {
       setNotice('Please wait until the image upload finishes.');
       return;
     }
@@ -368,28 +413,34 @@ export default function AuthPortal({
     }
 
     addAdminItem({
-  id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-  name,
-  price,
-  sizes,
-  section: section || 'Admin Picks',
-  img: itemForm.image || 'new-arrival.png',
-  category,
-  description: String(itemForm.description || '').trim(),
-  colors: String(itemForm.colors || '').trim(),
-});
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      name,
+      price,
+      sizes,
+      section: section || 'Admin Picks',
+      img: itemForm.image || 'new-arrival.png',
+      category,
+      description: String(itemForm.description || '').trim(),
+      colors: String(itemForm.colors || '').trim(),
+      stock: String(itemForm.stock || '').trim(),
+      rating: String(itemForm.rating || '').trim(),
+      gallery: itemForm.gallery,
+    });
 
-    
-      setItemForm({
-        name: '',
-        price: '',
-        sizes: '',
-        section: 'Admin Picks',
-        image: 'new-arrival.png',
-        category: 'Clothing',
-        description: '',
-        colors: '',
-      });
+
+    setItemForm({
+      name: '',
+      price: '',
+      sizes: '',
+      section: 'Admin Picks',
+      image: 'new-arrival.png',
+      category: 'Clothing',
+      description: '',
+      colors: '',
+      stock: '',
+      rating: '',
+      gallery: [],
+    });
     setSelectedUploadFileName('');
     setInventoryVersion((value) => value + 1);
     setNotice('');
@@ -514,7 +565,45 @@ export default function AuthPortal({
     }
   };
 
-  
+  const handleAddGalleryImage = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const validationError = validateImageFile(file);
+    if (validationError) {
+      setNotice(validationError);
+      event.target.value = '';
+      return;
+    }
+
+    try {
+      setIsUploadingGalleryImage(true);
+      setNotice('Uploading gallery image...');
+
+      const secureUrl = await uploadImageDirectToCloudinary(file);
+
+      setItemForm((previous) => ({
+        ...previous,
+        gallery: [...previous.gallery, secureUrl],
+      }));
+      setNotice('');
+      showToast('Gallery image added.', 'success');
+    } catch (error) {
+      console.error('Gallery image upload failed:', error?.response?.data || error);
+      const cloudinaryMessage = error?.response?.data?.error?.message;
+      setNotice(cloudinaryMessage || error?.message || 'Gallery image upload failed.');
+    } finally {
+      setIsUploadingGalleryImage(false);
+      event.target.value = '';
+    }
+  };
+
+  const handleRemoveGalleryImage = (index) => {
+    setItemForm((previous) => ({
+      ...previous,
+      gallery: previous.gallery.filter((_, i) => i !== index),
+    }));
+  };
 
   useEffect(() => {
     if (addItemSectionOptions.length === 0) return;
@@ -539,6 +628,12 @@ export default function AuthPortal({
       price: item.price,
       img: item.img || item.image || 'new-arrival.png',
       saleTag: item.saleTag || '',
+      description: item.description || '',
+      colors: (item.colors || []).join(', '),
+      sizes: (item.sizes || []).join(', '),
+      stock: item.stock || '',
+      rating: item.rating || '',
+      gallery: item.gallery && item.gallery.length ? item.gallery : [item.img || 'new-arrival.png'],
     }
   );
 
@@ -552,14 +647,58 @@ export default function AuthPortal({
     }));
   };
 
+  const handleAddCatalogueGalleryImage = async (item, event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const validationError = validateImageFile(file);
+    if (validationError) {
+      setNotice(validationError);
+      event.target.value = '';
+      return;
+    }
+
+    try {
+      setUploadingCatalogueGalleryKey(item.key);
+      setNotice('Uploading gallery image...');
+
+      const secureUrl = await uploadImageDirectToCloudinary(file);
+      const draft = getDraft(item);
+
+      handleDraftChange(item, 'gallery', [...draft.gallery, secureUrl]);
+      setNotice('');
+      showToast('Gallery image added. Remember to Save changes.', 'success');
+    } catch (error) {
+      console.error('Gallery image upload failed:', error?.response?.data || error);
+      const cloudinaryMessage = error?.response?.data?.error?.message;
+      setNotice(cloudinaryMessage || error?.message || 'Gallery image upload failed.');
+    } finally {
+      setUploadingCatalogueGalleryKey('');
+      event.target.value = '';
+    }
+  };
+
+  const handleRemoveCatalogueGalleryImage = (item, index) => {
+    const draft = getDraft(item);
+    handleDraftChange(item, 'gallery', draft.gallery.filter((_, i) => i !== index));
+  };
+
   const handleSaveWebsiteItem = (item) => {
     const draft = getDraft(item);
+    const finalImg = String(draft.img || '').trim() || 'new-arrival.png';
+    const finalGallery = draft.gallery && draft.gallery.length ? draft.gallery : [finalImg];
 
     upsertCatalogueItemOverride(item.meta, {
       name: String(draft.name || '').trim() || item.name,
       price: normalizePrice(draft.price) || item.price,
-      img: String(draft.img || '').trim() || 'new-arrival.png',
+      img: finalImg,
       saleTag: String(draft.saleTag || '').trim(),
+      description: String(draft.description || '').trim(),
+      colors: splitCommaList(draft.colors),
+      sizes: splitCommaList(draft.sizes),
+      stock: String(draft.stock || '').trim(),
+      rating: String(draft.rating || '').trim(),
+      gallery: finalGallery,
     });
 
     unmarkCatalogueItemDeleted(item.meta);
@@ -738,29 +877,51 @@ export default function AuthPortal({
             <span>Sizes</span>
             <input
               type="text"
-              placeholder="S, M, L, XL"
+              placeholder="S, M, L, XL  or  500 ML"
               value={itemForm.sizes}
               onChange={(event) => setItemForm((prev) => ({ ...prev, sizes: event.target.value }))}
             />
           </label>
           <label className="auth-field auth-field-full">
-  <span>Description (optional)</span>
-  <input
-    type="text"
-    placeholder="What makes this product worth buying"
-    value={itemForm.description}
-    onChange={(event) => setItemForm((prev) => ({ ...prev, description: event.target.value }))}
-  />
-</label>
-<label className="auth-field auth-field-full">
-  <span>Colors (optional, comma separated)</span>
-  <input
-    type="text"
-    placeholder="Leave blank if not applicable, e.g. skincare"
-    value={itemForm.colors}
-    onChange={(event) => setItemForm((prev) => ({ ...prev, colors: event.target.value }))}
-  />
-</label>
+            <span>Description (optional)</span>
+            <input
+              type="text"
+              placeholder="What makes this product worth buying"
+              value={itemForm.description}
+              onChange={(event) => setItemForm((prev) => ({ ...prev, description: event.target.value }))}
+            />
+          </label>
+          <label className="auth-field auth-field-full">
+            <span>Colors (optional, comma separated)</span>
+            <input
+              type="text"
+              placeholder="Leave blank if not applicable, e.g. skincare"
+              value={itemForm.colors}
+              onChange={(event) => setItemForm((prev) => ({ ...prev, colors: event.target.value }))}
+            />
+          </label>
+          <label className="auth-field">
+            <span>Stock quantity (optional)</span>
+            <input
+              type="number"
+              min="0"
+              placeholder="e.g. 5"
+              value={itemForm.stock}
+              onChange={(event) => setItemForm((prev) => ({ ...prev, stock: event.target.value }))}
+            />
+          </label>
+          <label className="auth-field">
+            <span>Rating (optional, 0-5)</span>
+            <input
+              type="number"
+              min="0"
+              max="5"
+              step="0.1"
+              placeholder="e.g. 4.5"
+              value={itemForm.rating}
+              onChange={(event) => setItemForm((prev) => ({ ...prev, rating: event.target.value }))}
+            />
+          </label>
           <label className="auth-field">
             <span>Category</span>
             <select
@@ -806,9 +967,32 @@ export default function AuthPortal({
                 : 'No uploaded image linked yet. Default image will be used.'}
             </p>
           </div>
+
+          <label className="auth-field auth-field-full">
+            <span>Add gallery images (optional, upload one at a time)</span>
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              onChange={handleAddGalleryImage}
+              disabled={isUploadingGalleryImage}
+            />
+          </label>
+          {itemForm.gallery.length > 0 && (
+            <div className="auth-gallery-preview auth-field-full">
+              {itemForm.gallery.map((url, index) => (
+                <div key={`${url}-${index}`} className="auth-gallery-thumb">
+                  <img src={url} alt={`Gallery ${index + 1}`} />
+                  <button type="button" onClick={() => handleRemoveGalleryImage(index)}>
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
           <div className="auth-actions auth-field-full">
-            <button type="submit" className="primary-button" disabled={isUploadingItemImage}>
-              {isUploadingItemImage ? 'Uploading image...' : 'Add item'}
+            <button type="submit" className="primary-button" disabled={isUploadingItemImage || isUploadingGalleryImage}>
+              {isUploadingItemImage || isUploadingGalleryImage ? 'Uploading image...' : 'Add item'}
             </button>
           </div>
         </form>
@@ -824,6 +1008,7 @@ export default function AuthPortal({
                   <h3>{item.name}</h3>
                   <p>{item.price} • Sizes: {item.sizes || 'N/A'}</p>
                   <p>Category: {item.category || 'General'} • Section: {item.section || 'Admin Picks'}</p>
+                  {item.stock !== '' && item.stock !== undefined && <p>Stock: {item.stock}</p>}
                 </div>
                 <button
                   type="button"
@@ -913,6 +1098,59 @@ export default function AuthPortal({
                       />
                     </label>
 
+                    <label className="auth-field">
+                      <span>Sizes (comma separated)</span>
+                      <input
+                        type="text"
+                        placeholder="S, M, L, XL  or  500 ML"
+                        value={draft.sizes}
+                        onChange={(event) => handleDraftChange(item, 'sizes', event.target.value)}
+                      />
+                    </label>
+
+                    <label className="auth-field">
+                      <span>Colors (comma separated)</span>
+                      <input
+                        type="text"
+                        placeholder="Leave blank if not applicable"
+                        value={draft.colors}
+                        onChange={(event) => handleDraftChange(item, 'colors', event.target.value)}
+                      />
+                    </label>
+
+                    <label className="auth-field">
+                      <span>Stock quantity</span>
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder="e.g. 5"
+                        value={draft.stock}
+                        onChange={(event) => handleDraftChange(item, 'stock', event.target.value)}
+                      />
+                    </label>
+
+                    <label className="auth-field">
+                      <span>Rating (0-5)</span>
+                      <input
+                        type="number"
+                        min="0"
+                        max="5"
+                        step="0.1"
+                        placeholder="e.g. 4.5"
+                        value={draft.rating}
+                        onChange={(event) => handleDraftChange(item, 'rating', event.target.value)}
+                      />
+                    </label>
+
+                    <label className="auth-field auth-field-full">
+                      <span>Description</span>
+                      <input
+                        type="text"
+                        value={draft.description}
+                        onChange={(event) => handleDraftChange(item, 'description', event.target.value)}
+                      />
+                    </label>
+
                     <label className="auth-field auth-field-full">
                       <span>Image path</span>
                       <input
@@ -921,6 +1159,28 @@ export default function AuthPortal({
                         onChange={(event) => handleDraftChange(item, 'img', event.target.value)}
                       />
                     </label>
+
+                    <label className="auth-field auth-field-full">
+                      <span>Add gallery image</span>
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp,image/gif"
+                        onChange={(event) => handleAddCatalogueGalleryImage(item, event)}
+                        disabled={uploadingCatalogueGalleryKey === item.key}
+                      />
+                    </label>
+                    {draft.gallery.length > 0 && (
+                      <div className="auth-gallery-preview auth-field-full">
+                        {draft.gallery.map((url, index) => (
+                          <div key={`${item.key}-${url}-${index}`} className="auth-gallery-thumb">
+                            <img src={url} alt={`Gallery ${index + 1}`} />
+                            <button type="button" onClick={() => handleRemoveCatalogueGalleryImage(item, index)}>
+                              Remove
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   <div className="auth-catalog-actions">

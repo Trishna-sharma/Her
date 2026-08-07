@@ -13,18 +13,25 @@ const WHATSAPP_NUMBER = '8801853314954';
 
 function buildProductDetails(item, rowTitle) {
   const nameSeed = item.name.length;
+  const parsedRating = Number.parseFloat(item.rating);
+  const parsedStock = item.stock !== undefined && item.stock !== null && String(item.stock).trim() !== ''
+    ? Number.parseInt(item.stock, 10)
+    : null;
 
   return {
     ...item,
     rowTitle,
-    rating: item.rating || (4 + (nameSeed % 8) / 10),
+    rating: Number.isFinite(parsedRating) && parsedRating > 0 ? parsedRating : (4 + (nameSeed % 8) / 10),
     reviews: item.reviews || 80 + nameSeed * 3,
     description:
       (item.description && item.description.trim()) ||
       `${item.name} is available now — reach out for full details on this item.`,
     colors: Array.isArray(item.colors) && item.colors.length ? item.colors : [],
     sizes: Array.isArray(item.sizes) && item.sizes.length ? item.sizes : [],
-    gallery: item.gallery || [item.img, item.img, item.img, item.img],
+    gallery: Array.isArray(item.gallery) && item.gallery.length
+      ? item.gallery
+      : [item.img, item.img, item.img, item.img],
+    stock: Number.isFinite(parsedStock) ? parsedStock : null,
   };
 }
 
@@ -384,6 +391,13 @@ export default function CategoryDetail({
                 <p className="product-modal-meta">
                   Rating {selectedProduct.rating.toFixed(1)} / 5 • {selectedProduct.reviews} reviews
                 </p>
+                {selectedProduct.stock !== null && (
+                  <p className={`product-modal-stock ${selectedProduct.stock > 0 ? '' : 'out'}`}>
+                    {selectedProduct.stock > 0
+                      ? `${selectedProduct.stock} available in stock`
+                      : 'Out of stock'}
+                  </p>
+                )}
                 <p className="product-modal-description">{selectedProduct.description}</p>
 
                 {selectedProduct.colors.length > 0 && (
@@ -449,7 +463,12 @@ export default function CategoryDetail({
                   <button
                     type="button"
                     className="primary-button"
-                    disabled={!selectedColor || !selectedSize || quantity < 1}
+                    disabled={
+                      !selectedColor ||
+                      !selectedSize ||
+                      quantity < 1 ||
+                      selectedProduct.stock === 0
+                    }
                     onClick={() => {
                       onAddCartItem(
                         createItemPayload(
