@@ -25,10 +25,11 @@ export const categoryData = {
     { id: 2, name: 'Toners', img: 'new-arrival.png', price: '$35' },
     { id: 3, name: 'Masks', img: 'new-arrival.png', price: '$29' },
     { id: 4, name: 'Moisturisers', img: 'new-arrival.png', price: '$55' },
-    { id: 5, name: 'Eye Care', img: 'new-arrival.png', price: '$49' },
-    { id: 6, name: 'Everyday Edit', img: 'new-arrival.png', price: '$30' },
-    { id: 7, name: 'Festive Edit', img: 'new-arrival.png', price: '$45' },
-    { id: 8, name: 'Premium Edit', img: 'new-arrival.png', price: '$60' },
+    { id: 5, name: 'Facewash', img: 'new-arrival.png', price: '$24' },
+    { id: 6, name: 'Eye Care', img: 'new-arrival.png', price: '$49' },
+    { id: 7, name: 'Everyday Edit', img: 'new-arrival.png', price: '$30' },
+    { id: 8, name: 'Festive Edit', img: 'new-arrival.png', price: '$45' },
+    { id: 9, name: 'Premium Edit', img: 'new-arrival.png', price: '$60' },
   ],
   Makeup: [
     { id: 1, name: 'Lipsticks', img: 'new-arrival.png', price: '$25' },
@@ -145,6 +146,11 @@ export const categoryDetailSections = {
       { name: 'SPF Moisturiser', price: '$37' },
       { name: 'Night Moisturiser', price: '$44' },
     ]),
+    Facewash: withImage([
+      { name: 'Gentle Foaming Facewash', price: '$24' },
+      { name: 'Salicylic Facewash', price: '$28' },
+      { name: 'Hydrating Facewash', price: '$26' },
+    ]),
     'Eye Care': withImage([
       { name: 'Eye Cream', price: '$28' },
       { name: 'Eye Serum', price: '$34' },
@@ -242,6 +248,18 @@ const catalogueRow = (title, items) => ({
 export const categorySectionCatalogueRows = {
   Clothing: {
     Lehengas: [
+      catalogueRow('Everyday Edit', [
+        { name: 'Soft Pearl Everyday Lehenga', price: '$199' },
+        { name: 'Minimal Ivory Lehenga', price: '$219' },
+      ]),
+      catalogueRow('Festive Edit', [
+        { name: 'Rich Festive Lehenga', price: '$289' },
+        { name: 'Embroidered Festive Lehenga', price: '$309' },
+      ]),
+      catalogueRow('Premium Edit', [
+        { name: 'Luxury Premium Lehenga', price: '$379' },
+        { name: 'Statement Premium Lehenga', price: '$429' },
+      ]),
       catalogueRow('Plain Lehengas', [
         { name: 'Ivory Everyday Lehenga', price: '$189' },
         { name: 'Rose Plain Lehenga', price: '$205' },

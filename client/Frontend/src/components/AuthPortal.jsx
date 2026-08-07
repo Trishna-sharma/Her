@@ -152,6 +152,7 @@ export default function AuthPortal({
     customCurrency: '',
     sizes: '',
     section: 'Admin Picks',
+    subSection: 'Everyday Edit',
     image: 'new-arrival.png',
     category: 'Clothing',
     description: '',
@@ -217,6 +218,13 @@ export default function AuthPortal({
     const options = Object.keys(sections);
     return options.length ? options : ['Admin Picks'];
   }, [itemForm.category, inventoryVersion]);
+
+  const addItemSubSectionOptions = useMemo(() => {
+    if (itemForm.category === 'Clothing' && itemForm.section === 'Lehengas') {
+      return ['Everyday Edit', 'Festive Edit', 'Premium Edit'];
+    }
+    return ['Everyday Edit', 'Festive Edit', 'Premium Edit', 'Party Edit'];
+  }, [itemForm.category, itemForm.section, inventoryVersion]);
 
   const filteredWebsiteItems = useMemo(() => {
     const query = catalogueQuery.trim().toLowerCase();
@@ -459,6 +467,7 @@ export default function AuthPortal({
       price,
       sizes,
       section: section || 'Admin Picks',
+      subSection: itemForm.subSection || 'Everyday Edit',
       img: itemForm.image || 'new-arrival.png',
       category,
       description: String(itemForm.description || '').trim(),
@@ -468,7 +477,6 @@ export default function AuthPortal({
       gallery: itemForm.gallery,
     });
 
-
     setItemForm({
       name: '',
       price: '',
@@ -476,6 +484,7 @@ export default function AuthPortal({
       customCurrency: '',
       sizes: '',
       section: 'Admin Picks',
+      subSection: 'Everyday Edit',
       image: 'new-arrival.png',
       category: 'Clothing',
       description: '',
@@ -658,6 +667,17 @@ export default function AuthPortal({
       }));
     }
   }, [addItemSectionOptions, itemForm.section]);
+
+  useEffect(() => {
+    if (addItemSubSectionOptions.length === 0) return;
+
+    if (!addItemSubSectionOptions.includes(itemForm.subSection)) {
+      setItemForm((previous) => ({
+        ...previous,
+        subSection: addItemSubSectionOptions[0],
+      }));
+    }
+  }, [addItemSubSectionOptions, itemForm.subSection]);
 
   const handleDeleteManagedItem = (id) => {
     removeAdminItem(id);
@@ -1009,6 +1029,17 @@ export default function AuthPortal({
               onChange={(event) => setItemForm((prev) => ({ ...prev, section: event.target.value }))}
             >
               {addItemSectionOptions.map((option) => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
+          </label>
+          <label className="auth-field">
+            <span>Sub section</span>
+            <select
+              value={itemForm.subSection}
+              onChange={(event) => setItemForm((prev) => ({ ...prev, subSection: event.target.value }))}
+            >
+              {addItemSubSectionOptions.map((option) => (
                 <option key={option} value={option}>{option}</option>
               ))}
             </select>
