@@ -1525,9 +1525,10 @@ export default function AuthPortal({
     <div className="auth-page">
       <header className="page-top-nav">
         <button type="button" className="logo logo-home" onClick={() => onNavigate('welcome')} aria-label="Go to home page">
-          <span style={{ color: '#69f2c4' }}>H</span>
-          <span style={{ color: '#ffde59' }}>E</span>
-          <span style={{ color: '#Ff66c4' }}>R</span>
+          <img
+            src={theme === 'dark' ? '/1.png' : '/2.png'}
+            alt="Her by Mou logo"
+          />
         </button>
         <Navigation onNavigate={onNavigate} activePage={activePage} theme={theme} onToggleTheme={onToggleTheme} />
         {hasActiveSession ? (
