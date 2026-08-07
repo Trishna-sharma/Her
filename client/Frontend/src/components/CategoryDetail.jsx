@@ -1,201 +1,105 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import Navigation from './Navigation.jsx';
-import { categoryData } from '../data/categoryData.js';
 import AuthStatusButton from './AuthStatusButton.jsx';
-import {
-  applyCatalogueItemState,
-  getCatalogueRowsForSection,
-  getSectionsForCategory,
-  markCatalogueItemDeleted,
-} from '../data/catalogAdminStore.js';
-
-const WHATSAPP_NUMBER = '8801853314954';
-
-function buildProductDetails(item, rowTitle) {
-  const nameSeed = item.name.length;
-  const parsedRating = Number.parseFloat(item.rating);
-  const parsedStock = item.stock !== undefined && item.stock !== null && String(item.stock).trim() !== ''
-    ? Number.parseInt(item.stock, 10)
-    : null;
-
-  return {
-    ...item,
-    rowTitle,
-    rating: Number.isFinite(parsedRating) && parsedRating > 0 ? parsedRating : (4 + (nameSeed % 8) / 10),
-    reviews: item.reviews || 80 + nameSeed * 3,
-    description:
-      (item.description && item.description.trim()) ||
-      `${item.name} is available now — reach out for full details on this item.`,
-    colors: Array.isArray(item.colors) && item.colors.length ? item.colors : [],
-    sizes: Array.isArray(item.sizes) && item.sizes.length ? item.sizes : [],
-    gallery: Array.isArray(item.gallery) && item.gallery.length
-      ? item.gallery
-      : [item.img, item.img, item.img, item.img],
-    stock: Number.isFinite(parsedStock) ? parsedStock : null,
-  };
-}
-
-function openWhatsApp(message) {
-  const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
-  window.open(url, '_blank', 'noopener,noreferrer');
-}
+import { getCatalogueRowsForSection, getSectionsForCategory, applyCatalogueItemState } from './catalogAdminStore.js';
 
 export default function CategoryDetail({
   category,
-  selectedSection,
+  categories,
+  onSelectCategory,
   onNavigate,
   activePage,
   onLoginClick,
   authSession,
+  wishlistItems = [],
+  onToggleWishlist,
+  onAddCartItem,
   theme,
   onToggleTheme,
-  wishlistItems = [],
-  onToggleWishlist = () => {},
-  onAddCartItem = () => {},
 }) {
-  const rowRefs = useRef({});
-  const [catalogueVersion, setCatalogueVersion] = useState(0);
-  const canManageCatalogue = authSession?.role === 'admin';
+  const sectionsObj = useMemo(() => getSectionsForCategory(category), [category]);
+  const sectionKeys = useMemo(() => Object.keys(sectionsObj), [sectionsObj]);
 
-  const sections = useMemo(() => {
-    return getSectionsForCategory(category);
-  }, [category, catalogueVersion]);
+  const [activeSection, setActiveSection] = useState(() => sectionKeys[0] || '');
+  const [activeProduct, setActiveProduct] = useState(null);
+  const [selectedColor, setSelectedColor] = useState('');
+  const [selectedSize, setSelectedSize] = useState('');
+  const [productQty, setProductQty] = useState(1);
+  const [activeGalleryIndex, setActiveGalleryIndex] = useState(0);
 
-  const sectionNames = useMemo(() => Object.keys(sections), [sections]);
-  const [activeSection, setActiveSection] = useState(sectionNames[0] || '');
+  const rawRows = useMemo(() => {
+    if (!activeSection) return [];
+    return getCatalogueRowsForSection(category, activeSection);
+  }, [category, activeSection]);
 
-  useEffect(() => {
-    if (selectedSection && sections[selectedSection]) {
-      setActiveSection(selectedSection);
-      return;
-    }
-
-    setActiveSection(sectionNames[0] || '');
-  }, [category, selectedSection, sections]);
-
-  const baseRows = useMemo(
-    () => getCatalogueRowsForSection(category, activeSection),
-    [category, activeSection, catalogueVersion]
-  );
-
-  const catalogueRows = useMemo(
-    () => baseRows
+  const catalogueRows = useMemo(() => {
+    return rawRows
       .map((row) => ({
         ...row,
         items: row.items
-          .map((item) => applyCatalogueItemState(
-            {
+          .map((item) => {
+            const meta = {
               category,
               section: activeSection,
               rowTitle: row.title,
               name: item.name,
-            },
-            item
-          ))
+            };
+            return applyCatalogueItemState(meta, item);
+          })
           .filter((item) => !item.isDeleted),
       }))
-      .filter((row) => row.items.length > 0),
-    [baseRows, category, activeSection, catalogueVersion]
-  );
-  const totalCatalogueItems = catalogueRows.reduce((acc, row) => acc + row.items.length, 0);
-  const heroTitle = activeSection || category || 'Category';
-  const [selectedProduct, setSelectedProduct] = useState(null);
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  const [selectedColor, setSelectedColor] = useState('');
-  const [selectedSize, setSelectedSize] = useState('');
-  const [quantity, setQuantity] = useState(1);
-  const wishlistIds = useMemo(
-    () => new Set(wishlistItems.map((item) => item.itemId)),
-    [wishlistItems]
+      .filter((row) => row.items.length > 0);
+  }, [rawRows, category, activeSection]);
+
+  const activeCategorySections = useMemo(
+    () => (activeSection && sectionsObj[activeSection] ? sectionsObj[activeSection] : []),
+    [sectionsObj, activeSection]
   );
 
-  useEffect(() => {
-    setSelectedProduct(null);
-    setSelectedImageIndex(0);
-    setSelectedColor('');
-    setSelectedSize('');
-    setQuantity(1);
-  }, [category, activeSection]);
-
-  const createItemPayload = (item, rowTitle, color, size, qty = 1) => {
-    const itemId = `${category}__${activeSection}__${rowTitle}__${item.name}`;
-    const safeColor = color || 'Default';
-    const safeSize = size || 'Default';
-
-    return {
-      itemId,
-      cartId: `${itemId}__${safeColor}__${safeSize}`,
-      name: item.name,
-      price: item.price,
-      img: item.img,
-      category,
-      section: activeSection,
-      rowTitle,
-      color: safeColor,
-      size: safeSize,
-      quantity: qty,
-    };
+  const handleSectionClick = (secName) => {
+    setActiveSection(secName);
   };
+
+  const createItemPayload = (itemDetails, rowTitle, colorChoice, sizeChoice, qty) => ({
+    itemId: itemDetails.key,
+    name: itemDetails.name,
+    category,
+    section: activeSection,
+    rowTitle,
+    price: itemDetails.price,
+    img: itemDetails.img,
+    color: colorChoice,
+    size: sizeChoice,
+    quantity: qty,
+  });
+
+  const isWishlisted = (itemKey) => wishlistItems.some((w) => w.itemId === itemKey);
 
   const openProduct = (item, rowTitle) => {
-    const built = buildProductDetails(item, rowTitle);
-    setSelectedProduct(built);
-    setSelectedImageIndex(0);
-    setSelectedColor(built.colors[0] || 'Default');
-    setSelectedSize(built.sizes[0] || 'Default');
-    setQuantity(1);
+    const details = buildProductDetails(item, rowTitle);
+    setActiveProduct(details);
+    setSelectedColor(details.colors[0] || 'Default');
+    setSelectedSize(details.sizes[0] || 'Default');
+    setProductQty(1);
+    setActiveGalleryIndex(0);
   };
 
-  const handleAdminDeleteProduct = (event, item, rowTitle) => {
-    event.stopPropagation();
-    if (!canManageCatalogue) return;
+  const buildProductDetails = (item, rowTitle) => {
+    const colors = item.colors?.length ? item.colors : ['Classic', 'Rose', 'Gold'];
+    const sizes = item.sizes?.length ? item.sizes : ['S', 'M', 'L'];
+    const gallery = item.gallery?.length ? item.gallery : [item.img];
 
-    markCatalogueItemDeleted(item.__catalogMeta || {
-      category,
-      section: activeSection,
+    return {
+      ...item,
       rowTitle,
-      name: item.name,
-    });
-
-    if (selectedProduct?.name === item.name && selectedProduct?.rowTitle === rowTitle) {
-      setSelectedProduct(null);
-    }
-
-    setCatalogueVersion((value) => value + 1);
-  };
-
-  const orderMessage = (item, rowTitle) => (
-    [
-      'Hello Her by Mou,',
-      '',
-      `I want to order this item: ${item.name}`,
-      `Category: ${category}`,
-      `Section: ${activeSection}`,
-      `Collection row: ${rowTitle}`,
-      `Price: ${item.price}`,
-      `Selected color: ${selectedColor || '-'}`,
-      `Selected size: ${selectedSize || '-'}`,
-      `Quantity: ${quantity}`,
-      '',
-      'Please help me with available colors, sizes, and order confirmation on WhatsApp.',
-    ].join('\n')
-  );
-
-  const scrollRow = (rowTitle, direction) => {
-    const target = rowRefs.current[rowTitle];
-    if (!target) return;
-
-    const firstCard = target.querySelector('.category-card');
-    const styles = window.getComputedStyle(target);
-    const gap = Number.parseFloat(styles.columnGap || styles.gap || '0') || 0;
-    const scrollAmount = firstCard
-      ? firstCard.getBoundingClientRect().width + gap
-      : Math.max(260, target.clientWidth * 0.82);
-
-    target.scrollBy({
-      left: direction === 'left' ? -scrollAmount : scrollAmount,
-      behavior: 'smooth',
-    });
+      key: item.__catalogKey,
+      colors,
+      sizes,
+      gallery,
+      description: item.description || `Beautiful ${item.name} from our ${category} - ${activeSection} collection. Crafted with exceptional care.`,
+      stock: item.stock || 'In Stock',
+      rating: item.rating || '4.8 ★',
+    };
   };
 
   return (
@@ -210,293 +114,256 @@ export default function CategoryDetail({
         <AuthStatusButton authSession={authSession} onClick={onLoginClick} />
       </header>
 
-      <main className="category-detail-main">
-        <div className="category-detail-hero">
-          <div>
-            <h1>
-              {heroTitle} <span className="category-detail-inline-count">({totalCatalogueItems} items)</span>
-            </h1>
-            <p className="category-detail-description">
-              Explore curated {heroTitle.toLowerCase()} catalogues inside this sub page.
-            </p>
-            {canManageCatalogue && (
-              <p className="category-admin-note">Admin mode: Delete item is enabled on each product card.</p>
-            )}
+      <div className="category-detail-layout">
+        <aside className="category-panel">
+          <p className="sidebar-label">Shop by category</p>
+          <div className="category-list">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                className={`category-pill ${cat === category ? 'active' : ''}`}
+                onClick={() => {
+                  onSelectCategory(cat);
+                  const newSections = getSectionsForCategory(cat);
+                  const firstSec = Object.keys(newSections)[0] || '';
+                  setActiveSection(firstSec);
+                }}
+              >
+                {cat}
+              </button>
+            ))}
           </div>
-          <div className="category-detail-summary">
-            <button className="category-back-btn" onClick={() => onNavigate('gallery', category)}>
-              Back to gallery
-            </button>
+        </aside>
+
+        <main className="category-main">
+          <div className="detail-header">
+            <span className="detail-eyebrow">Her by Mou Collection</span>
+            <h1 className="detail-title">{category}</h1>
+            <p className="detail-sub">Handpicked designs curated for your style</p>
           </div>
-        </div>
 
-        <section className="category-detail-tabs" aria-label="Sub categories">
-          {sectionNames.map((sectionName) => (
-            <button
-              key={sectionName}
-              type="button"
-              className={`category-detail-tab ${sectionName === activeSection ? 'active' : ''}`}
-              onClick={() => setActiveSection(sectionName)}
-            >
-              {sectionName}
-            </button>
-          ))}
-        </section>
+          <nav className="section-tabs" aria-label="Subcategories">
+            {sectionKeys.map((secName) => (
+              <button
+                key={secName}
+                type="button"
+                className={`section-tab ${secName === activeSection ? 'active' : ''}`}
+                onClick={() => handleSectionClick(secName)}
+              >
+                {secName}
+              </button>
+            ))}
+          </nav>
 
-        <section className="category-catalogue-rows">
-          {catalogueRows.length === 0 ? (
-            <div className="saved-empty-state">
-              <h2>No items available in this section.</h2>
-              <p>
-                {canManageCatalogue
-                  ? 'All items are removed. Add products from the admin portal.'
-                  : 'Please choose another section or category.'}
-              </p>
-            </div>
-          ) : catalogueRows.map((row) => (
-            <div key={row.title} className="category-catalogue-row">
-              <div className="category-catalogue-row-head">
-                <h2>{row.title}</h2>
-                <span>{row.items.length} catalogues</span>
+          {activeCategorySections.length > 0 && (
+            <div className="section-showcase-bar">
+              <span className="showcase-label">Featured in {activeSection}:</span>
+              <div className="showcase-pills">
+                {activeCategorySections.map((secItem) => (
+                  <span key={secItem.id || secItem.name} className="showcase-pill">
+                    {secItem.name}
+                  </span>
+                ))}
               </div>
+            </div>
+          )}
 
-              <div className="category-row-scroll-shell">
-                <div
-                  ref={(element) => {
-                    rowRefs.current[row.title] = element;
-                  }}
-                  className="category-card-grid scrollable"
-                >
-                {row.items.map((item) => (
-                  <article
-                    key={`${row.title}-${item.__catalogKey || item.id}`}
-                    className="category-card"
-                    onClick={() => openProduct(item, row.title)}
-                  >
-                    <div className="category-card-image">
-                      <img src={item.img} alt={item.name} />
-                    </div>
-                    <div className="category-card-body">
-                      <h2>{item.name}</h2>
-                      <p>{item.price}</p>
-                      {item.saleTag && <p className="category-sale-pill">{item.saleTag}</p>}
-                      <div className="category-card-actions">
-                        <button
-                          className="primary-button"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            openProduct(item, row.title);
-                          }}
-                        >
-                          Add to cart
-                        </button>
-                        <button
-                          type="button"
-                          className={`wishlist-btn ${wishlistIds.has(createItemPayload(item, row.title).itemId) ? 'active' : ''}`}
-                          aria-label="Add to wishlist"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            const details = buildProductDetails(item, row.title);
-                            onToggleWishlist(
-                              createItemPayload(
-                                details,
-                                row.title,
-                                details.colors?.[0] || 'Default',
-                                details.sizes?.[0] || 'Default',
-                                1
-                              )
-                            );
-                          }}
-                        >
-                          {wishlistIds.has(createItemPayload(item, row.title).itemId) ? '♥' : '♡'}
-                        </button>
-                        {canManageCatalogue && (
+          <section className="catalogue-rows">
+            {catalogueRows.map((row) => (
+              <div key={row.title} className="catalogue-row-group">
+                <h2 className="catalogue-row-title">{row.title}</h2>
+                <div className="catalogue-grid">
+                  {row.items.map((item) => {
+                    const wish = isWishlisted(item.__catalogKey);
+                    return (
+                      <div
+                        key={item.__catalogKey}
+                        className="product-card"
+                        onClick={() => openProduct(item, row.title)}
+                      >
+                        <div className="card-image-wrap">
+                          <img src={item.img} alt={item.name} loading="lazy" />
+                          {item.saleTag && <span className="card-tag">{item.saleTag}</span>}
                           <button
                             type="button"
-                            className="startshopping-remove"
-                            onClick={(event) => handleAdminDeleteProduct(event, item, row.title)}
+                            className={`card-wishlist-btn ${wish ? 'wishlisted' : ''}`}
+                            aria-label={wish ? 'Remove from wishlist' : 'Add to wishlist'}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const details = buildProductDetails(item, row.title);
+                              onToggleWishlist(createItemPayload(details, row.title, 'Default', 'Default', 1));
+                            }}
                           >
-                            Delete item
+                            {wish ? '♥' : '♡'}
                           </button>
-                        )}
+                        </div>
+
+                        <div className="card-content">
+                          <h3 className="card-title">{item.name}</h3>
+                          <p className="card-price">{item.price}</p>
+                          <button
+                            type="button"
+                            className="primary-button card-add-btn"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const details = buildProductDetails(item, row.title);
+                              onAddCartItem(
+                                createItemPayload(
+                                  details,
+                                  row.title,
+                                  details.colors?.[0] || 'Default',
+                                  details.sizes?.[0] || 'Default',
+                                  1
+                                )
+                              );
+                            }}
+                          >
+                            Add to cart
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  </article>
-                ))}
+                    );
+                  })}
                 </div>
-
-                {row.items.length > 1 && (
-                  <div className="row-controls">
-                    <button
-                      type="button"
-                      className="row-nav-btn"
-                      onClick={() => scrollRow(row.title, 'left')}
-                      aria-label={`Scroll ${row.title} left`}
-                    >
-                      ←
-                    </button>
-
-                    <button
-                      type="button"
-                      className="row-nav-btn"
-                      onClick={() => scrollRow(row.title, 'right')}
-                      aria-label={`Scroll ${row.title} right`}
-                    >
-                      →
-                    </button>
-                  </div>
-                )}
               </div>
-            </div>
-          ))}
-        </section>
+            ))}
+          </section>
+        </main>
+      </div>
 
-        {selectedProduct && (
-          <div className="product-modal-overlay" onClick={() => setSelectedProduct(null)}>
-            <div className="product-modal" onClick={(event) => event.stopPropagation()}>
-              <button
-                type="button"
-                className="product-modal-close"
-                onClick={() => setSelectedProduct(null)}
-                aria-label="Close product details"
-              >
-                ×
-              </button>
+      {activeProduct && (
+        <div className="product-modal-backdrop" onClick={() => setActiveProduct(null)}>
+          <div className="product-modal" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className="modal-close"
+              onClick={() => setActiveProduct(null)}
+              aria-label="Close modal"
+            >
+              ✕
+            </button>
 
-              <div className="product-modal-gallery">
-                <div className="product-modal-main-image">
+            <div className="modal-grid">
+              <div className="modal-gallery">
+                <div className="modal-main-img">
                   <img
-                    src={selectedProduct.gallery[selectedImageIndex]}
-                    alt={`${selectedProduct.name} preview ${selectedImageIndex + 1}`}
+                    src={activeProduct.gallery[activeGalleryIndex] || activeProduct.img}
+                    alt={activeProduct.name}
                   />
                 </div>
-                <div className="product-modal-thumbs">
-                  {selectedProduct.gallery.map((imgSrc, index) => (
-                    <button
-                      key={`${selectedProduct.name}-thumb-${index}`}
-                      type="button"
-                      className={`product-modal-thumb ${index === selectedImageIndex ? 'active' : ''}`}
-                      onClick={() => setSelectedImageIndex(index)}
-                    >
-                      <img src={imgSrc} alt={`${selectedProduct.name} thumbnail ${index + 1}`} />
-                    </button>
-                  ))}
-                </div>
+                {activeProduct.gallery.length > 1 && (
+                  <div className="modal-thumbnails">
+                    {activeProduct.gallery.map((gImg, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        className={`thumb-btn ${idx === activeGalleryIndex ? 'active' : ''}`}
+                        onClick={() => setActiveGalleryIndex(idx)}
+                      >
+                        <img src={gImg} alt={`View ${idx + 1}`} />
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
-              <div className="product-modal-content">
-                <p className="product-modal-row">{selectedProduct.rowTitle}</p>
-                <h3>{selectedProduct.name}</h3>
-                <p className="product-modal-price">{selectedProduct.price}</p>
-                <p className="product-modal-meta">
-                  Rating {selectedProduct.rating.toFixed(1)} / 5 • {selectedProduct.reviews} reviews
-                </p>
-                {selectedProduct.stock !== null && (
-                  <p className={`product-modal-stock ${selectedProduct.stock > 0 ? '' : 'out'}`}>
-                    {selectedProduct.stock > 0
-                      ? `${selectedProduct.stock} available in stock`
-                      : 'Out of stock'}
-                  </p>
-                )}
-                <p className="product-modal-description">{selectedProduct.description}</p>
+              <div className="modal-info">
+                <span className="modal-row-tag">{activeProduct.rowTitle}</span>
+                <h2>{activeProduct.name}</h2>
+                <p className="modal-price">{activeProduct.price}</p>
+                <p className="modal-desc">{activeProduct.description}</p>
 
-                {selectedProduct.colors.length > 0 && (
-                  <div className="product-modal-block">
-                    <span>Colors</span>
-                    <div className="product-chip-list">
-                      {selectedProduct.colors.map((color) => (
-                        <button
-                          key={`${selectedProduct.name}-${color}`}
-                          type="button"
-                          className={`product-chip ${selectedColor === color ? 'active' : ''}`}
-                          onClick={() => setSelectedColor(color)}
-                        >
-                          {color}
-                        </button>
-                      ))}
-                    </div>
+                <div className="modal-option-group">
+                  <label>Color</label>
+                  <div className="option-buttons">
+                    {activeProduct.colors.map((c) => (
+                      <button
+                        key={c}
+                        type="button"
+                        className={`option-btn ${selectedColor === c ? 'active' : ''}`}
+                        onClick={() => setSelectedColor(c)}
+                      >
+                        {c}
+                      </button>
+                    ))}
                   </div>
-                )}
+                </div>
 
-                {selectedProduct.sizes.length > 0 && (
-                  <div className="product-modal-block">
-                    <span>Sizes</span>
-                    <div className="product-chip-list">
-                      {selectedProduct.sizes.map((size) => (
-                        <button
-                          key={`${selectedProduct.name}-${size}`}
-                          type="button"
-                          className={`product-chip ${selectedSize === size ? 'active' : ''}`}
-                          onClick={() => setSelectedSize(size)}
-                        >
-                          {size}
-                        </button>
-                      ))}
-                    </div>
+                <div className="modal-option-group">
+                  <label>Size</label>
+                  <div className="option-buttons">
+                    {activeProduct.sizes.map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        className={`option-btn ${selectedSize === s ? 'active' : ''}`}
+                        onClick={() => setSelectedSize(s)}
+                      >
+                        {s}
+                      </button>
+                    ))}
                   </div>
-                )}
+                </div>
 
-                <div className="product-modal-block">
-                  <span>Quantity</span>
-                  <div className="product-qty-control">
+                <div className="modal-qty-group">
+                  <label>Quantity</label>
+                  <div className="qty-picker">
                     <button
                       type="button"
-                      className="product-qty-btn"
-                      onClick={() => setQuantity((value) => Math.max(1, value - 1))}
-                      aria-label="Decrease quantity"
+                      onClick={() => setProductQty((q) => Math.max(1, q - 1))}
                     >
                       −
                     </button>
-                    <span className="product-qty-value">{quantity}</span>
-                    <button
-                      type="button"
-                      className="product-qty-btn"
-                      onClick={() => setQuantity((value) => Math.min(20, value + 1))}
-                      aria-label="Increase quantity"
-                    >
+                    <span>{productQty}</span>
+                    <button type="button" onClick={() => setProductQty((q) => q + 1)}>
                       +
                     </button>
                   </div>
                 </div>
 
-                <div className="product-modal-actions">
+                <div className="modal-actions">
                   <button
                     type="button"
                     className="primary-button"
-                    disabled={
-                      !selectedColor ||
-                      !selectedSize ||
-                      quantity < 1 ||
-                      selectedProduct.stock === 0
-                    }
                     onClick={() => {
                       onAddCartItem(
                         createItemPayload(
-                          selectedProduct,
-                          selectedProduct.rowTitle,
+                          activeProduct,
+                          activeProduct.rowTitle,
                           selectedColor,
                           selectedSize,
-                          quantity
+                          productQty
                         )
                       );
-                      openWhatsApp(orderMessage(selectedProduct, selectedProduct.rowTitle));
+                      setActiveProduct(null);
                     }}
                   >
-                    Add to cart
+                    Add to Cart
                   </button>
                   <button
                     type="button"
-                    className={`wishlist-btn large ${wishlistIds.has(createItemPayload(selectedProduct, selectedProduct.rowTitle).itemId) ? 'active' : ''}`}
-                    onClick={() => onToggleWishlist(createItemPayload(selectedProduct, selectedProduct.rowTitle, selectedColor, selectedSize, 1))}
+                    className={`secondary-button ${isWishlisted(activeProduct.key) ? 'wishlisted' : ''}`}
+                    onClick={() => {
+                      onToggleWishlist(
+                        createItemPayload(
+                          activeProduct,
+                          activeProduct.rowTitle,
+                          selectedColor,
+                          selectedSize,
+                          1
+                        )
+                      );
+                    }}
                   >
-                    {wishlistIds.has(createItemPayload(selectedProduct, selectedProduct.rowTitle).itemId) ? '♥ Saved' : '♡ Wishlist'}
+                    {isWishlisted(activeProduct.key) ? 'Saved in Wishlist ♥' : 'Add to Wishlist ♡'}
                   </button>
                 </div>
               </div>
             </div>
           </div>
-        )}
-      </main>
+        </div>
+      )}
     </div>
   );
 }

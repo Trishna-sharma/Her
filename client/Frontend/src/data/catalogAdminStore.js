@@ -4,10 +4,11 @@ const ADMIN_ITEMS_KEY = 'herby-admin-items';
 const DELETED_CATALOGUE_ITEMS_KEY = 'herby-deleted-catalogue-items';
 const CATALOGUE_OVERRIDES_KEY = 'herby-catalogue-overrides';
 
-const rowThemes = [
+export const rowThemes = [
   { label: 'Everyday Edit', namePrefix: 'Everyday', priceDelta: -8 },
-  { label: 'Festive Edit', namePrefix: 'Festive', priceDelta: 12 },
-  { label: 'Premium Edit', namePrefix: 'Premium', priceDelta: 26 },
+  { label: 'Party Edit', namePrefix: 'Party', priceDelta: 10 },
+  { label: 'Festive Edit', namePrefix: 'Festive', priceDelta: 20 },
+  { label: 'Premium Edit', namePrefix: 'Premium', priceDelta: 30 },
 ];
 
 function getItemImage(item) {
@@ -59,18 +60,39 @@ function formatPrice(num) {
 function createGeneratedRows(sectionName, sectionItems) {
   if (!sectionItems.length) return [];
 
-  return rowThemes.map((theme, rowIdx) => ({
+  // Base rows generated for each edit theme
+  const rows = rowThemes.map((theme, rowIdx) => ({
     title: `${sectionName} - ${theme.label}`,
-    items: sectionItems.map((item, itemIdx) => {
-      const base = parsePrice(item.price);
-      return {
-        ...item,
-        id: `${rowIdx + 1}-${item.id}`,
-        name: `${theme.namePrefix} ${item.name}`,
-        price: formatPrice(base + theme.priceDelta + itemIdx * 3),
-      };
-    }),
+    rawLabel: theme.label,
+    items: sectionItems
+      .filter((item) => !item.isAdminCreated) // regular template items
+      .map((item, itemIdx) => {
+        const base = parsePrice(item.price);
+        return {
+          ...item,
+          id: `${rowIdx + 1}-${item.id}`,
+          name: `${theme.namePrefix} ${item.name}`,
+          price: formatPrice(base + theme.priceDelta + itemIdx * 3),
+        };
+      }),
   }));
+
+  // Route admin created items into their chosen subSection / edit row
+  const adminItems = sectionItems.filter((item) => item.isAdminCreated);
+  adminItems.forEach((adminItem) => {
+    const targetSub = normalizeText(adminItem.subSection || 'Everyday Edit');
+    const matchingRow = rows.find(
+      (r) => normalizeText(r.rawLabel) === targetSub || normalizeText(r.title).includes(targetSub)
+    );
+
+    if (matchingRow) {
+      matchingRow.items.unshift(adminItem);
+    } else {
+      rows[0].items.unshift(adminItem); // Fallback to first row
+    }
+  });
+
+  return rows;
 }
 
 export function getAdminItems() {
@@ -198,6 +220,7 @@ export function mergeAdminItemsIntoSections(baseSections, category) {
       name: item.name,
       price: item.price,
       img: mainImage,
+      subSection: item.subSection || 'Everyday Edit', // <--- Stores user chosen Sub-Section / Edit type
       sizes: splitCommaList(item.sizes),
       colors: splitCommaList(item.colors),
       description: String(item.description || '').trim(),
@@ -243,14 +266,17 @@ export function getCatalogueRowsForSection(category, sectionName) {
   }
 
   const adminItems = items.filter((item) => item.isAdminCreated);
-  const adminRows = adminItems.length
-    ? [{ title: `${sectionName} - New Arrivals`, items: adminItems }]
-    : [];
+  const clonedExplicit = explicitRows.map((row) => {
+    const matchingAdminItems = adminItems.filter(
+      (aItem) => normalizeText(aItem.subSection) === normalizeText(row.title) || row.title.toLowerCase().includes(normalizeText(aItem.subSection))
+    );
+    return {
+      ...row,
+      items: [...matchingAdminItems, ...row.items],
+    };
+  });
 
-  return [
-    ...explicitRows.map((row) => ({ ...row, items: [...row.items] })),
-    ...adminRows,
-  ];
+  return clonedExplicit;
 }
 
 export function listAllWebsiteItems() {
