@@ -38,9 +38,48 @@ function normalizeEmail(value) {
 }
 
 function normalizePrice(value) {
-  const raw = String(value || '').trim();
-  if (!raw) return '';
-  return raw.startsWith('$') ? raw : `$${raw}`;
+  return String(value || '').trim();
+}
+
+const CURRENCY_OPTIONS = [
+  { code: 'BDT', symbol: '৳', label: '৳ BDT' },
+  { code: 'USD', symbol: '$', label: '$ USD' },
+  { code: 'EUR', symbol: '€', label: '€ EUR' },
+  { code: 'GBP', symbol: '£', label: '£ GBP' },
+  { code: 'INR', symbol: '₹', label: '₹ INR' },
+  { code: 'CUSTOM', symbol: '', label: 'Custom symbol' },
+];
+
+const DEFAULT_CURRENCY_CODE = 'BDT';
+
+function getCurrencySymbol(code, customSymbol) {
+  if (code === 'CUSTOM') return String(customSymbol || '').trim();
+  const match = CURRENCY_OPTIONS.find((option) => option.code === code);
+  return match ? match.symbol : '';
+}
+
+function combinePrice(code, customSymbol, amount) {
+  const symbol = getCurrencySymbol(code, customSymbol);
+  const cleanAmount = String(amount || '').trim();
+  return `${symbol}${cleanAmount}`;
+}
+
+// Splits a stored price string like "৳900" or "$45.50" back into
+// a currency code + raw numeric amount, so existing items can be edited.
+function parsePriceValue(raw) {
+  const str = String(raw || '').trim();
+  const match = str.match(/^([^\d]*)([\d.,]*)$/);
+  const symbol = match ? match[1].trim() : '';
+  const amount = match ? match[2].trim() : str;
+
+  const known = CURRENCY_OPTIONS.find((option) => option.code !== 'CUSTOM' && option.symbol === symbol);
+  if (known) {
+    return { currency: known.code, customSymbol: '', amount };
+  }
+  if (symbol) {
+    return { currency: 'CUSTOM', customSymbol: symbol, amount };
+  }
+  return { currency: DEFAULT_CURRENCY_CODE, customSymbol: '', amount };
 }
 
 function splitCommaList(value) {
@@ -109,6 +148,8 @@ export default function AuthPortal({
   const [itemForm, setItemForm] = useState({
     name: '',
     price: '',
+    currency: DEFAULT_CURRENCY_CODE,
+    customCurrency: '',
     sizes: '',
     section: 'Admin Picks',
     image: 'new-arrival.png',
@@ -392,12 +433,12 @@ export default function AuthPortal({
     event.preventDefault();
 
     const name = String(itemForm.name || '').trim();
-    const price = normalizePrice(itemForm.price);
+    const price = combinePrice(itemForm.currency, itemForm.customCurrency, itemForm.price);
     const sizes = String(itemForm.sizes || '').trim();
     const section = String(itemForm.section || '').trim();
     const category = String(itemForm.category || '').trim();
 
-    if (!name || !price || !category) {
+    if (!name || !String(itemForm.price || '').trim() || !category) {
       setNotice('Add item name, price, and category.');
       return;
     }
@@ -431,6 +472,8 @@ export default function AuthPortal({
     setItemForm({
       name: '',
       price: '',
+      currency: DEFAULT_CURRENCY_CODE,
+      customCurrency: '',
       sizes: '',
       section: 'Admin Picks',
       image: 'new-arrival.png',
@@ -623,18 +666,23 @@ export default function AuthPortal({
   };
 
   const getDraft = (item) => (
-    drafts[item.key] || {
-      name: item.name,
-      price: item.price,
-      img: item.img || item.image || 'new-arrival.png',
-      saleTag: item.saleTag || '',
-      description: item.description || '',
-      colors: (item.colors || []).join(', '),
-      sizes: (item.sizes || []).join(', '),
-      stock: item.stock || '',
-      rating: item.rating || '',
-      gallery: item.gallery && item.gallery.length ? item.gallery : [item.img || 'new-arrival.png'],
-    }
+    drafts[item.key] || (() => {
+      const parsedPrice = parsePriceValue(item.price);
+      return {
+        name: item.name,
+        priceAmount: parsedPrice.amount,
+        currency: parsedPrice.currency,
+        customCurrency: parsedPrice.customSymbol,
+        img: item.img || item.image || 'new-arrival.png',
+        saleTag: item.saleTag || '',
+        description: item.description || '',
+        colors: (item.colors || []).join(', '),
+        sizes: (item.sizes || []).join(', '),
+        stock: item.stock || '',
+        rating: item.rating || '',
+        gallery: item.gallery && item.gallery.length ? item.gallery : [item.img || 'new-arrival.png'],
+      };
+    })()
   );
 
   const handleDraftChange = (item, field, value) => {
@@ -687,10 +735,11 @@ export default function AuthPortal({
     const draft = getDraft(item);
     const finalImg = String(draft.img || '').trim() || 'new-arrival.png';
     const finalGallery = draft.gallery && draft.gallery.length ? draft.gallery : [finalImg];
+    const finalPrice = combinePrice(draft.currency, draft.customCurrency, draft.priceAmount) || item.price;
 
     upsertCatalogueItemOverride(item.meta, {
       name: String(draft.name || '').trim() || item.name,
-      price: normalizePrice(draft.price) || item.price,
+      price: finalPrice,
       img: finalImg,
       saleTag: String(draft.saleTag || '').trim(),
       description: String(draft.description || '').trim(),
@@ -866,12 +915,32 @@ export default function AuthPortal({
           </label>
           <label className="auth-field">
             <span>Price</span>
-            <input
-              type="text"
-              placeholder="250"
-              value={itemForm.price}
-              onChange={(event) => setItemForm((prev) => ({ ...prev, price: event.target.value }))}
-            />
+            <div className="auth-price-row">
+              <input
+                type="text"
+                inputMode="decimal"
+                placeholder="250"
+                value={itemForm.price}
+                onChange={(event) => setItemForm((prev) => ({ ...prev, price: event.target.value }))}
+              />
+              <select
+                value={itemForm.currency}
+                onChange={(event) => setItemForm((prev) => ({ ...prev, currency: event.target.value }))}
+              >
+                {CURRENCY_OPTIONS.map((option) => (
+                  <option key={option.code} value={option.code}>{option.label}</option>
+                ))}
+              </select>
+            </div>
+            {itemForm.currency === 'CUSTOM' && (
+              <input
+                type="text"
+                placeholder="Type your currency symbol, e.g. Tk"
+                value={itemForm.customCurrency}
+                onChange={(event) => setItemForm((prev) => ({ ...prev, customCurrency: event.target.value }))}
+                style={{ marginTop: '0.4rem' }}
+              />
+            )}
           </label>
           <label className="auth-field">
             <span>Sizes</span>
@@ -1081,11 +1150,31 @@ export default function AuthPortal({
 
                     <label className="auth-field">
                       <span>Price</span>
-                      <input
-                        type="text"
-                        value={draft.price}
-                        onChange={(event) => handleDraftChange(item, 'price', event.target.value)}
-                      />
+                      <div className="auth-price-row">
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          value={draft.priceAmount}
+                          onChange={(event) => handleDraftChange(item, 'priceAmount', event.target.value)}
+                        />
+                        <select
+                          value={draft.currency}
+                          onChange={(event) => handleDraftChange(item, 'currency', event.target.value)}
+                        >
+                          {CURRENCY_OPTIONS.map((option) => (
+                            <option key={option.code} value={option.code}>{option.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                      {draft.currency === 'CUSTOM' && (
+                        <input
+                          type="text"
+                          placeholder="Type your currency symbol, e.g. Tk"
+                          value={draft.customCurrency}
+                          onChange={(event) => handleDraftChange(item, 'customCurrency', event.target.value)}
+                          style={{ marginTop: '0.4rem' }}
+                        />
+                      )}
                     </label>
 
                     <label className="auth-field">

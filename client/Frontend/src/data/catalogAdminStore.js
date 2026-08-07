@@ -244,7 +244,7 @@ export function getCatalogueRowsForSection(category, sectionName) {
 
   const adminItems = items.filter((item) => item.isAdminCreated);
   const adminRows = adminItems.length
-    ? [{ title: `${sectionName} - Admin Picks`, items: adminItems }]
+    ? [{ title: `${sectionName} - New Arrivals`, items: adminItems }]
     : [];
 
   return [

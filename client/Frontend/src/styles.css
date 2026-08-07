@@ -3978,4 +3978,91 @@ body[data-theme='dark'] .auth-gallery-thumb button {
   border: 1px solid rgba(255, 255, 255, 0.09);
 }
 
+/* ADD THESE RULES TO YOUR styles.css — do not replace the whole file */
+
+/* Fixes invisible "Role:", "Name:" etc. labels in dark mode profile card */
+body[data-theme='dark'] .auth-profile-card p strong {
+  color: #fff7f2;
+}
+
+/* Stock status line in product modal */
+.product-modal-stock {
+  margin: 0;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #2e7b53;
+}
+
+.product-modal-stock.out {
+  color: #a93366;
+}
+
+body[data-theme='dark'] .product-modal-stock {
+  color: #9ce7bf;
+}
+
+body[data-theme='dark'] .product-modal-stock.out {
+  color: #ff9db8;
+}
+
+/* Gallery thumbnail preview grid in admin forms */
+.auth-gallery-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 0.4rem;
+}
+
+.auth-gallery-thumb {
+  width: 84px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.auth-gallery-thumb img {
+  width: 84px;
+  height: 84px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid rgba(113, 84, 176, 0.25);
+}
+
+.auth-gallery-thumb button {
+  border: none;
+  background: rgba(255, 240, 245, 0.9);
+  color: #a93366;
+  font-size: 0.68rem;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 0.2rem 0.5rem;
+  cursor: pointer;
+}
+
+body[data-theme='dark'] .auth-gallery-thumb img {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+body[data-theme='dark'] .auth-gallery-thumb button {
+  background: rgba(28, 28, 32, 0.96);
+  color: #ff9db8;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+/* Price amount + currency dropdown, side by side */
+.auth-price-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.auth-price-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.auth-price-row select {
+  flex: 0 0 auto;
+  width: 130px;
+}
 

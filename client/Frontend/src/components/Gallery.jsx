@@ -1,7 +1,6 @@
 ﻿import React, { useEffect, useRef, useState } from 'react';
 import Navigation from './Navigation.jsx';
 import { categoryData } from '../data/categoryData.js';
-import { getAdminItems } from '../data/catalogAdminStore.js';
 import AuthStatusButton from './AuthStatusButton.jsx';
 
 function ArcCarousel({ items, onKnowMore }) {
@@ -151,17 +150,10 @@ export default function Gallery({
     }
   }, [selectedCategory]);
 
-  const items = [
-    ...(categoryData[currentCategory] || []),
-    ...getAdminItems()
-      .filter((item) => String(item.category || '').trim().toLowerCase() === currentCategory.toLowerCase())
-      .map((item) => ({
-        id: `admin-${item.id}`,
-        name: item.name,
-        img: item.img || item.image || 'new-arrival.png',
-        price: item.price,
-      })),
-  ];
+  // This carousel only shows top-level FOLDERS for the current category
+  // (e.g. Serums, Toners, Masks). Admin-added products must never appear
+  // here directly — they live inside their folder, shown in CategoryDetail.
+  const items = categoryData[currentCategory] || [];
 
   return (
     <div className="gallery-page">
