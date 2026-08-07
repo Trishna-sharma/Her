@@ -1,7 +1,8 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import Navigation from './Navigation.jsx';
 import AuthStatusButton from './AuthStatusButton.jsx';
-import { getCatalogueRowsForSection, getSectionsForCategory, applyCatalogueItemState } from './catalogAdminStore.js';
+// Fixed import path: stepping up from components/ into data/
+import { getCatalogueRowsForSection, getSectionsForCategory, applyCatalogueItemState } from '../data/catalogAdminStore.js';
 
 export default function CategoryDetail({
   category,
@@ -17,7 +18,7 @@ export default function CategoryDetail({
   theme,
   onToggleTheme,
 }) {
-  const sectionsObj = useMemo(() => getSectionsForCategory(category), [category]);
+  const sectionsObj = useMemo(() => getSectionsForCategory(category) || {}, [category]);
   const sectionKeys = useMemo(() => Object.keys(sectionsObj), [sectionsObj]);
 
   const [activeSection, setActiveSection] = useState(() => sectionKeys[0] || '');
@@ -27,16 +28,23 @@ export default function CategoryDetail({
   const [productQty, setProductQty] = useState(1);
   const [activeGalleryIndex, setActiveGalleryIndex] = useState(0);
 
+  // Sync activeSection if category prop changes externally
+  useEffect(() => {
+    if (sectionKeys.length > 0 && !sectionKeys.includes(activeSection)) {
+      setActiveSection(sectionKeys[0]);
+    }
+  }, [sectionKeys, activeSection]);
+
   const rawRows = useMemo(() => {
     if (!activeSection) return [];
-    return getCatalogueRowsForSection(category, activeSection);
+    return getCatalogueRowsForSection(category, activeSection) || [];
   }, [category, activeSection]);
 
   const catalogueRows = useMemo(() => {
     return rawRows
       .map((row) => ({
         ...row,
-        items: row.items
+        items: (row.items || [])
           .map((item) => {
             const meta = {
               category,
@@ -75,15 +83,6 @@ export default function CategoryDetail({
 
   const isWishlisted = (itemKey) => wishlistItems.some((w) => w.itemId === itemKey);
 
-  const openProduct = (item, rowTitle) => {
-    const details = buildProductDetails(item, rowTitle);
-    setActiveProduct(details);
-    setSelectedColor(details.colors[0] || 'Default');
-    setSelectedSize(details.sizes[0] || 'Default');
-    setProductQty(1);
-    setActiveGalleryIndex(0);
-  };
-
   const buildProductDetails = (item, rowTitle) => {
     const colors = item.colors?.length ? item.colors : ['Classic', 'Rose', 'Gold'];
     const sizes = item.sizes?.length ? item.sizes : ['S', 'M', 'L'];
@@ -100,6 +99,15 @@ export default function CategoryDetail({
       stock: item.stock || 'In Stock',
       rating: item.rating || '4.8 ★',
     };
+  };
+
+  const openProduct = (item, rowTitle) => {
+    const details = buildProductDetails(item, rowTitle);
+    setActiveProduct(details);
+    setSelectedColor(details.colors[0] || 'Default');
+    setSelectedSize(details.sizes[0] || 'Default');
+    setProductQty(1);
+    setActiveGalleryIndex(0);
   };
 
   return (
@@ -125,7 +133,7 @@ export default function CategoryDetail({
                 className={`category-pill ${cat === category ? 'active' : ''}`}
                 onClick={() => {
                   onSelectCategory(cat);
-                  const newSections = getSectionsForCategory(cat);
+                  const newSections = getSectionsForCategory(cat) || {};
                   const firstSec = Object.keys(newSections)[0] || '';
                   setActiveSection(firstSec);
                 }}
