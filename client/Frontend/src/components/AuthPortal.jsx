@@ -152,7 +152,6 @@ export default function AuthPortal({
     customCurrency: '',
     sizes: '',
     section: 'Admin Picks',
-    subSection: 'Everyday Edit',
     image: 'new-arrival.png',
     category: 'Clothing',
     description: '',
@@ -437,7 +436,6 @@ export default function AuthPortal({
     const price = combinePrice(itemForm.currency, itemForm.customCurrency, itemForm.price);
     const sizes = String(itemForm.sizes || '').trim();
     const section = String(itemForm.section || '').trim();
-    const subSection = String(itemForm.subSection || '').trim();
     const category = String(itemForm.category || '').trim();
 
     if (!name || !String(itemForm.price || '').trim() || !category) {
@@ -461,7 +459,6 @@ export default function AuthPortal({
       price,
       sizes,
       section: section || 'Admin Picks',
-      subSection: subSection || 'Everyday Edit',
       img: itemForm.image || 'new-arrival.png',
       category,
       description: String(itemForm.description || '').trim(),
@@ -471,6 +468,7 @@ export default function AuthPortal({
       gallery: itemForm.gallery,
     });
 
+
     setItemForm({
       name: '',
       price: '',
@@ -478,7 +476,6 @@ export default function AuthPortal({
       customCurrency: '',
       sizes: '',
       section: 'Admin Picks',
-      subSection: 'Everyday Edit',
       image: 'new-arrival.png',
       category: 'Clothing',
       description: '',
@@ -994,468 +991,524 @@ export default function AuthPortal({
               onChange={(event) => setItemForm((prev) => ({ ...prev, rating: event.target.value }))}
             />
           </label>
-
           <label className="auth-field">
             <span>Category</span>
             <select
               value={itemForm.category}
               onChange={(event) => setItemForm((prev) => ({ ...prev, category: event.target.value }))}
             >
-              {addItemCategoryOptions.map((cat) => (
-                <option key={cat} value={cat}>{cat}</option>
+              {addItemCategoryOptions.map((option) => (
+                <option key={option} value={option}>{option}</option>
               ))}
             </select>
           </label>
-
           <label className="auth-field">
             <span>Section</span>
             <select
               value={itemForm.section}
               onChange={(event) => setItemForm((prev) => ({ ...prev, section: event.target.value }))}
             >
-              {addItemSectionOptions.map((sec) => (
-                <option key={sec} value={sec}>{sec}</option>
+              {addItemSectionOptions.map((option) => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
+          </label>
+          <label className="auth-field auth-field-full">
+            <span>Upload image (max 10MB)</span>
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              onChange={handleItemImageUpload}
+              disabled={isUploadingItemImage}
+            />
+          </label>
+          <p className="auth-upload-hint auth-field-full">
+            {selectedUploadFileName ? `Selected file: ${selectedUploadFileName}` : 'Choose a file to upload it directly to Cloudinary.'}
+          </p>
+          <p className="auth-upload-hint auth-field-full">
+            The file uploads straight to Cloudinary and the returned image URL is saved automatically.
+          </p>
+          <div className="auth-upload-preview auth-field-full">
+            <img src={itemForm.image || 'new-arrival.png'} alt="Selected item preview" />
+            <p>
+              {hasUploadedItemImage
+                ? 'Image linked successfully. You can add the item now.'
+                : 'No uploaded image linked yet. Default image will be used.'}
+            </p>
+          </div>
+
+          <label className="auth-field auth-field-full">
+            <span>Add gallery images (optional, upload one at a time)</span>
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              onChange={handleAddGalleryImage}
+              disabled={isUploadingGalleryImage}
+            />
+          </label>
+          {itemForm.gallery.length > 0 && (
+            <div className="auth-gallery-preview auth-field-full">
+              {itemForm.gallery.map((url, index) => (
+                <div key={`${url}-${index}`} className="auth-gallery-thumb">
+                  <img src={url} alt={`Gallery ${index + 1}`} />
+                  <button type="button" onClick={() => handleRemoveGalleryImage(index)}>
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="auth-actions auth-field-full">
+            <button type="submit" className="primary-button" disabled={isUploadingItemImage || isUploadingGalleryImage}>
+              {isUploadingItemImage || isUploadingGalleryImage ? 'Uploading image...' : 'Add item'}
+            </button>
+          </div>
+        </form>
+
+        {managedItems.length > 0 && (
+          <div className="auth-item-list">
+            {managedItems.map((item) => (
+              <article key={item.id} className="auth-item-card">
+                <div className="auth-item-thumb">
+                  <img src={item.img || item.image || 'new-arrival.png'} alt={item.name} />
+                </div>
+                <div>
+                  <h3>{item.name}</h3>
+                  <p>{item.price} • Sizes: {item.sizes || 'N/A'}</p>
+                  <p>Category: {item.category || 'General'} • Section: {item.section || 'Admin Picks'}</p>
+                  {item.stock !== '' && item.stock !== undefined && <p>Stock: {item.stock}</p>}
+                </div>
+                <button
+                  type="button"
+                  className="startshopping-remove"
+                  onClick={() => handleDeleteManagedItem(item.id)}
+                >
+                  Delete
+                </button>
+              </article>
+            ))}
+          </div>
+        )}
+      </details>
+
+      <details className="auth-admin-section" open>
+        <summary>Manage Entire Website Catalogue</summary>
+
+        <div className="auth-catalog-filters">
+          <label className="auth-field">
+            <span>Category</span>
+            <select
+              value={catalogueCategoryFilter}
+              onChange={(event) => setCatalogueCategoryFilter(event.target.value)}
+            >
+              {categoryOptions.map((option) => (
+                <option key={option} value={option}>{option}</option>
               ))}
             </select>
           </label>
 
-          {/* ================= NEW SUB-SECTION DROPDOWN ================= */}
-          <label className="auth-field">
-            <span>Sub-Section / Edit Type</span>
-            <select
-              value={itemForm.subSection}
-              onChange={(event) => setItemForm((prev) => ({ ...prev, subSection: event.target.value }))}
-            >
-              <option value="Everyday Edit">Everyday Edit</option>
-              <option value="Party Edit">Party Edit</option>
-              <option value="Festive Edit">Festive Edit</option>
-              <option value="Premium Edit">Premium Edit</option>
-            </select>
+          <label className="auth-field auth-field-query">
+            <span>Search</span>
+            <input
+              type="text"
+              placeholder="Find item, section, sale tag"
+              value={catalogueQuery}
+              onChange={(event) => setCatalogueQuery(event.target.value)}
+            />
           </label>
-          {/* ============================================================= */}
-
-          <div className="auth-field auth-field-full">
-            <span>Upload Image (Max 10MB)</span>
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp,image/gif"
-              onChange={handleItemImageUpload}
-              disabled={isUploadingItemImage}
-            />
-            <small>Choose a file to upload it directly to Cloudinary.</small>
-          </div>
-
-          <div className="auth-field auth-field-full">
-            <span>Add Gallery Images (Optional, upload one at a time)</span>
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp,image/gif"
-              onChange={handleAddGalleryImage}
-              disabled={isUploadingGalleryImage}
-            />
-            {itemForm.gallery.length > 0 && (
-              <div className="auth-gallery-preview-grid">
-                {itemForm.gallery.map((imgUrl, idx) => (
-                  <div key={idx} className="auth-gallery-preview-item">
-                    <img src={imgUrl} alt={`Gallery item ${idx + 1}`} />
-                    <button
-                      type="button"
-                      className="auth-remove-gallery-btn"
-                      onClick={() => handleRemoveGalleryImage(idx)}
-                    >
-                      &times;
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="auth-form-submit-row">
-            <button type="submit" className="primary-button" disabled={isUploadingItemImage}>
-              Add Item
-            </button>
-          </div>
-        </form>
-      </details>
-
-      <details className="auth-admin-section" open>
-        <summary>Manage Website Catalogue ({filteredWebsiteItems.length} items)</summary>
-
-        <div className="auth-catalogue-filters">
-          <input
-            type="text"
-            placeholder="Search items by name, section..."
-            value={catalogueQuery}
-            onChange={(e) => setCatalogueQuery(e.target.value)}
-          />
-
-          <select
-            value={catalogueCategoryFilter}
-            onChange={(e) => setCatalogueCategoryFilter(e.target.value)}
-          >
-            {categoryOptions.map((category) => (
-              <option key={category} value={category}>{category}</option>
-            ))}
-          </select>
         </div>
 
-        <div className="auth-catalogue-grid">
-          {filteredWebsiteItems.map((item) => {
-            const draft = getDraft(item);
-            const isDeleted = item.isDeleted;
+        <p className="auth-catalog-caption">
+          Showing {filteredWebsiteItems.length} of {websiteItems.length} items.
+        </p>
 
-            return (
-              <div key={item.key} className={`auth-catalogue-card ${isDeleted ? 'is-deleted' : ''}`}>
-                <div className="auth-catalogue-card-head">
-                  <span className="auth-badge">{item.category}</span>
-                  <span className="auth-badge-section">{item.section} &rsaquo; {item.rowTitle}</span>
-                  {isDeleted && <span className="auth-badge-hidden">Hidden</span>}
-                </div>
+        <div className="auth-catalog-list">
+          {filteredWebsiteItems.length === 0 ? (
+            <p className="auth-catalog-empty">No items match this filter.</p>
+          ) : (
+            filteredWebsiteItems.map((item) => {
+              const draft = getDraft(item);
 
-                <div className="auth-catalogue-card-body">
-                  <div className="auth-catalogue-thumb">
-                    <img src={draft.img} alt={draft.name} />
+              return (
+                <article key={item.key} className={`auth-catalog-card ${item.isDeleted ? 'is-deleted' : ''}`}>
+                  <div className="auth-catalog-meta">
+                    <h3>{item.name}</h3>
+                    <p>{item.category} • {item.section}</p>
+                    <small>{item.rowTitle}</small>
                   </div>
 
-                  <div className="auth-catalogue-inputs">
-                    <label>
-                      <span>Item Name</span>
+                  <div className="auth-catalog-grid">
+                    <label className="auth-field">
+                      <span>Name</span>
                       <input
                         type="text"
                         value={draft.name}
-                        onChange={(e) => handleDraftChange(item, 'name', e.target.value)}
+                        onChange={(event) => handleDraftChange(item, 'name', event.target.value)}
                       />
                     </label>
 
-                    <div className="auth-price-row">
-                      <label>
-                        <span>Price Amount</span>
+                    <label className="auth-field">
+                      <span>Price</span>
+                      <div className="auth-price-row">
                         <input
                           type="text"
+                          inputMode="decimal"
                           value={draft.priceAmount}
-                          onChange={(e) => handleDraftChange(item, 'priceAmount', e.target.value)}
+                          onChange={(event) => handleDraftChange(item, 'priceAmount', event.target.value)}
                         />
-                      </label>
-                      <label>
-                        <span>Currency</span>
                         <select
                           value={draft.currency}
-                          onChange={(e) => handleDraftChange(item, 'currency', e.target.value)}
+                          onChange={(event) => handleDraftChange(item, 'currency', event.target.value)}
                         >
-                          {CURRENCY_OPTIONS.map((opt) => (
-                            <option key={opt.code} value={opt.code}>{opt.label}</option>
+                          {CURRENCY_OPTIONS.map((option) => (
+                            <option key={option.code} value={option.code}>{option.label}</option>
                           ))}
                         </select>
-                      </label>
-                    </div>
-
-                    {draft.currency === 'CUSTOM' && (
-                      <label>
-                        <span>Custom Symbol</span>
+                      </div>
+                      {draft.currency === 'CUSTOM' && (
                         <input
                           type="text"
+                          placeholder="Type your currency symbol, e.g. Tk"
                           value={draft.customCurrency}
-                          onChange={(e) => handleDraftChange(item, 'customCurrency', e.target.value)}
+                          onChange={(event) => handleDraftChange(item, 'customCurrency', event.target.value)}
+                          style={{ marginTop: '0.4rem' }}
                         />
-                      </label>
-                    )}
-
-                    <label>
-                      <span>Image URL</span>
-                      <input
-                        type="text"
-                        value={draft.img}
-                        onChange={(e) => handleDraftChange(item, 'img', e.target.value)}
-                      />
+                      )}
                     </label>
 
-                    <label>
-                      <span>Sale Tag</span>
+                    <label className="auth-field">
+                      <span>Sale tag</span>
                       <input
                         type="text"
-                        placeholder="e.g. 20% OFF"
+                        placeholder="Top Sale / Black Friday"
                         value={draft.saleTag}
-                        onChange={(e) => handleDraftChange(item, 'saleTag', e.target.value)}
+                        onChange={(event) => handleDraftChange(item, 'saleTag', event.target.value)}
                       />
                     </label>
 
-                    <label>
+                    <label className="auth-field">
+                      <span>Sizes (comma separated)</span>
+                      <input
+                        type="text"
+                        placeholder="S, M, L, XL  or  500 ML"
+                        value={draft.sizes}
+                        onChange={(event) => handleDraftChange(item, 'sizes', event.target.value)}
+                      />
+                    </label>
+
+                    <label className="auth-field">
+                      <span>Colors (comma separated)</span>
+                      <input
+                        type="text"
+                        placeholder="Leave blank if not applicable"
+                        value={draft.colors}
+                        onChange={(event) => handleDraftChange(item, 'colors', event.target.value)}
+                      />
+                    </label>
+
+                    <label className="auth-field">
+                      <span>Stock quantity</span>
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder="e.g. 5"
+                        value={draft.stock}
+                        onChange={(event) => handleDraftChange(item, 'stock', event.target.value)}
+                      />
+                    </label>
+
+                    <label className="auth-field">
+                      <span>Rating (0-5)</span>
+                      <input
+                        type="number"
+                        min="0"
+                        max="5"
+                        step="0.1"
+                        placeholder="e.g. 4.5"
+                        value={draft.rating}
+                        onChange={(event) => handleDraftChange(item, 'rating', event.target.value)}
+                      />
+                    </label>
+
+                    <label className="auth-field auth-field-full">
                       <span>Description</span>
                       <input
                         type="text"
                         value={draft.description}
-                        onChange={(e) => handleDraftChange(item, 'description', e.target.value)}
+                        onChange={(event) => handleDraftChange(item, 'description', event.target.value)}
                       />
                     </label>
 
-                    <label>
-                      <span>Colors (comma separated)</span>
+                    <label className="auth-field auth-field-full">
+                      <span>Image path</span>
                       <input
                         type="text"
-                        value={draft.colors}
-                        onChange={(e) => handleDraftChange(item, 'colors', e.target.value)}
+                        value={draft.img}
+                        onChange={(event) => handleDraftChange(item, 'img', event.target.value)}
                       />
                     </label>
 
-                    <label>
-                      <span>Sizes (comma separated)</span>
+                    <label className="auth-field auth-field-full">
+                      <span>Add gallery image</span>
                       <input
-                        type="text"
-                        value={draft.sizes}
-                        onChange={(e) => handleDraftChange(item, 'sizes', e.target.value)}
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp,image/gif"
+                        onChange={(event) => handleAddCatalogueGalleryImage(item, event)}
+                        disabled={uploadingCatalogueGalleryKey === item.key}
                       />
                     </label>
-
-                    <div className="auth-price-row">
-                      <label>
-                        <span>Stock</span>
-                        <input
-                          type="number"
-                          value={draft.stock}
-                          onChange={(e) => handleDraftChange(item, 'stock', e.target.value)}
-                        />
-                      </label>
-                      <label>
-                        <span>Rating</span>
-                        <input
-                          type="number"
-                          step="0.1"
-                          value={draft.rating}
-                          onChange={(e) => handleDraftChange(item, 'rating', e.target.value)}
-                        />
-                      </label>
-                    </div>
-
-                    <div className="auth-field">
-                      <span>Gallery Images</span>
-                      <div className="auth-gallery-preview-grid">
-                        {draft.gallery.map((imgUrl, idx) => (
-                          <div key={idx} className="auth-gallery-preview-item">
-                            <img src={imgUrl} alt={`Gallery ${idx + 1}`} />
-                            <button
-                              type="button"
-                              className="auth-remove-gallery-btn"
-                              onClick={() => handleRemoveCatalogueGalleryImage(item, idx)}
-                            >
-                              &times;
+                    {draft.gallery.length > 0 && (
+                      <div className="auth-gallery-preview auth-field-full">
+                        {draft.gallery.map((url, index) => (
+                          <div key={`${item.key}-${url}-${index}`} className="auth-gallery-thumb">
+                            <img src={url} alt={`Gallery ${index + 1}`} />
+                            <button type="button" onClick={() => handleRemoveCatalogueGalleryImage(item, index)}>
+                              Remove
                             </button>
                           </div>
                         ))}
                       </div>
-                      <input
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp,image/gif"
-                        onChange={(e) => handleAddCatalogueGalleryImage(item, e)}
-                        disabled={uploadingCatalogueGalleryKey === item.key}
-                        style={{ marginTop: '0.4rem' }}
-                      />
-                    </div>
+                    )}
                   </div>
-                </div>
 
-                <div className="auth-catalogue-card-actions">
-                  <button
-                    type="button"
-                    className="primary-button"
-                    onClick={() => handleSaveWebsiteItem(item)}
-                  >
-                    Save Changes
-                  </button>
-
-                  {isDeleted ? (
-                    <button
-                      type="button"
-                      className="secondary-button"
-                      onClick={() => handleRestoreWebsiteItem(item)}
-                    >
-                      Restore Item
+                  <div className="auth-catalog-actions">
+                    <button type="button" className="primary-button" onClick={() => handleSaveWebsiteItem(item)}>
+                      Save changes
                     </button>
-                  ) : (
-                    <button
-                      type="button"
-                      className="danger-button"
-                      onClick={() => handleDeleteWebsiteItem(item)}
-                    >
-                      Hide Item
-                    </button>
-                  )}
 
-                  <button
-                    type="button"
-                    className="auth-text-link"
-                    onClick={() => handleResetWebsiteItem(item)}
-                  >
-                    Reset to Default
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+                    {item.isDeleted ? (
+                      <button type="button" className="secondary-button" onClick={() => handleRestoreWebsiteItem(item)}>
+                        Restore item
+                      </button>
+                    ) : (
+                      <button type="button" className="startshopping-remove" onClick={() => handleDeleteWebsiteItem(item)}>
+                        Delete from website
+                      </button>
+                    )}
+
+                    <button type="button" className="secondary-button" onClick={() => handleResetWebsiteItem(item)}>
+                      Reset
+                    </button>
+                  </div>
+                </article>
+              );
+            })
+          )}
         </div>
       </details>
     </div>
   );
 
-  const renderUserAuthForm = () => (
-    <section className="auth-compact-card" aria-label="User auth form">
-      <h2>{mode === 'login' ? 'Welcome back!' : 'Create your account'}</h2>
+  const renderUserPanel = () => {
+    if (isUserLoggedIn) {
+      return (
+        <div className="auth-form-shell">
+          <h2>Welcome, {authSession.name}</h2>
+          <p>Your user account is logged in locally on this browser.</p>
+          <div className="auth-actions">
+            <button type="button" className="primary-button" onClick={() => onNavigate('gallery')}>
+              Continue shopping
+            </button>
+            <button type="button" className="secondary-button" onClick={handleLogout}>
+              Logout
+            </button>
+          </div>
+        </div>
+      );
+    }
 
-      {mode === 'register' && !otpStep && (
-        <label className="auth-field">
-          <span>Full Name</span>
-          <input
-            type="text"
-            placeholder="John Doe"
-            value={userForm.name}
-            onChange={(e) => setUserForm((prev) => ({ ...prev, name: e.target.value }))}
-          />
-        </label>
-      )}
+    if (hasActiveSession && !isUserLoggedIn) {
+      return (
+        <div className="auth-form-shell">
+          <h2>User Login</h2>
+          <p>Admin is currently logged in. Logout first, then login as user.</p>
+          <div className="auth-actions">
+            <button type="button" className="secondary-button" onClick={handleLogout}>
+              Logout admin
+            </button>
+          </div>
+        </div>
+      );
+    }
 
-      {!otpStep && (
-        <>
+    return (
+      <section className="auth-compact-card" aria-label="User auth form">
+        <h2>
+          {mode === 'login'
+            ? 'Nice to see you!'
+            : otpStep
+            ? 'Verify Your Email'
+            : 'Create account'}
+        </h2>
+
+        {/* --- REGISTRATION INPUTS (STEP 1) --- */}
+        {mode === 'register' && !otpStep && (
           <label className="auth-field">
-            <span>Email</span>
+            <span>User name</span>
             <input
-              type="email"
-              placeholder="you@example.com"
-              value={userForm.email}
-              onChange={(e) => setUserForm((prev) => ({ ...prev, email: e.target.value }))}
+              type="text"
+              placeholder="Your username"
+              value={userForm.name}
+              onChange={(event) => setUserForm((prev) => ({ ...prev, name: event.target.value }))}
             />
           </label>
+        )}
 
-          <label className="auth-field">
-            <span>Password</span>
-            <input
-              type="password"
-              placeholder="Enter password"
-              value={userForm.password}
-              onChange={(e) => setUserForm((prev) => ({ ...prev, password: e.target.value }))}
-            />
+        {/* --- EMAIL & PASSWORD INPUTS (For Login and Register Step 1) --- */}
+        {!otpStep && (
+          <>
+            <label className="auth-field">
+              <span>{mode === 'login' ? 'Email or phone number' : 'Email'}</span>
+              <input
+                type="email"
+                placeholder={mode === 'login' ? 'Email or phone number' : 'Your email'}
+                value={userForm.email}
+                onChange={(event) => setUserForm((prev) => ({ ...prev, email: event.target.value }))}
+              />
+            </label>
+
+            <label className="auth-field">
+              <span>Password</span>
+              <input
+                type="password"
+                placeholder="Enter password"
+                value={userForm.password}
+                onChange={(event) => setUserForm((prev) => ({ ...prev, password: event.target.value }))}
+              />
+            </label>
+          </>
+        )}
+
+        {/* --- OTP CODE INPUT (STEP 2) --- */}
+        {mode === 'register' && otpStep && (
+          <>
+            <p style={{ fontSize: '0.88rem', opacity: 0.85, marginBottom: '12px' }}>
+              We've sent a 6-digit verification code to <strong>{userForm.email}</strong>.
+            </p>
+            <label className="auth-field">
+              <span>6-Digit Verification Code</span>
+              <input
+                type="text"
+                placeholder="e.g. 123456"
+                maxLength={6}
+                value={otp}
+                onChange={(event) => setOtp(event.target.value)}
+              />
+            </label>
+            <div style={{ textAlign: 'right', marginTop: '-4px', marginBottom: '12px' }}>
+              <button
+                type="button"
+                className="auth-text-link"
+                onClick={handleResendOtp}
+              >
+                Resend OTP
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* --- CHECKBOX / EXTRA LINKS --- */}
+        {mode === 'login' && (
+          <div className="auth-inline-row">
+            <label className="auth-checkline">
+              <input type="checkbox" defaultChecked />
+              <span>Remember me</span>
+            </label>
+            <button
+              type="button"
+              className="auth-text-link"
+              onClick={() => setNotice('Password reset needs backend support.')}
+            >
+              Forgot password?
+            </button>
+          </div>
+        )}
+
+        {mode === 'register' && !otpStep && (
+          <label className="auth-checkline">
+            <input type="checkbox" defaultChecked />
+            <span>I accept the terms and privacy policy</span>
           </label>
-        </>
-      )}
+        )}
 
-      {/* OTP Input Field */}
-      {otpStep && (
-        <label className="auth-field">
-          <span>Enter 6-Digit OTP</span>
-          <input
-            type="text"
-            maxLength="6"
-            placeholder="123456"
-            value={otp}
-            onChange={(e) => setOtp(e.target.value)}
-          />
+        {/* --- MAIN ACTION BUTTON --- */}
+        <button type="button" className="auth-solid-action" onClick={handleUserAuth}>
+          {mode === 'login'
+            ? 'Sign in'
+            : otpStep
+            ? 'Verify Code & Complete Sign Up'
+            : 'Send OTP Code'}
+        </button>
+
+        {mode === 'login' && (
+          <div className="auth-google-wrap">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => setNotice('Google login failed or was cancelled.')}
+            />
+          </div>
+        )}
+
+        <p className="auth-switch-row">
+          {mode === 'login' ? 'No account yet?' : 'Already have an account?'}{' '}
           <button
             type="button"
             className="auth-text-link"
-            style={{ marginTop: '0.4rem', textAlign: 'left' }}
-            onClick={handleResendOtp}
+            onClick={() => {
+              setMode((prev) => (prev === 'login' ? 'register' : 'login'));
+              setOtpStep(false);
+              setOtp('');
+              setNotice('');
+            }}
           >
-            Resend OTP
+            {mode === 'login' ? 'Create account' : 'Log in'}
           </button>
-        </label>
-      )}
+        </p>
 
-      <button type="button" className="auth-solid-action" onClick={handleUserAuth}>
-        {mode === 'login' ? 'Sign in' : otpStep ? 'Verify OTP & Sign up' : 'Send OTP'}
-      </button>
-
-      {!otpStep && (
-        <div className="auth-google-wrapper" style={{ marginTop: '1rem' }}>
-          <GoogleLogin
-            onSuccess={handleGoogleSuccess}
-            onError={() => setNotice('Google Sign-In failed. Please try again.')}
-          />
-        </div>
-      )}
-
-      <p className="auth-switch-row">
-        {mode === 'login' ? 'No account yet?' : 'Already have an account?'}{' '}
         <button
           type="button"
-          className="auth-text-link"
-          onClick={() => {
-            setMode((prev) => (prev === 'login' ? 'register' : 'login'));
-            setOtpStep(false);
-            setOtp('');
-            setNotice('');
-          }}
+          className="auth-guest-link"
+          onClick={() => onNavigate('welcome')}
         >
-          {mode === 'login' ? 'Create account' : 'Log in'}
+          Continue as guest
         </button>
-      </p>
-
-      <button
-        type="button"
-        className="auth-guest-link"
-        onClick={() => onNavigate('welcome')}
-      >
-        Continue as guest
-      </button>
-    </section>
-  );
+      </section>
+    );
+  };
 
   return (
-    <div className="auth-page-wrapper">
-      <Navigation
-        activePage={activePage}
-        onNavigate={onNavigate}
-        authSession={authSession}
-        onAuthChange={onAuthChange}
-        theme={theme}
-        onToggleTheme={onToggleTheme}
-      />
+    <div className="auth-page">
+      <header className="page-top-nav">
+        <button type="button" className="logo logo-home" onClick={() => onNavigate('welcome')} aria-label="Go to home page">
+          <span style={{ color: '#69f2c4' }}>H</span>
+          <span style={{ color: '#ffde59' }}>E</span>
+          <span style={{ color: '#Ff66c4' }}>R</span>
+        </button>
+        <Navigation onNavigate={onNavigate} activePage={activePage} theme={theme} onToggleTheme={onToggleTheme} />
+        {hasActiveSession ? (
+          <AuthStatusButton authSession={authSession} onClick={onClose} menuEnabled={false} />
+        ) : (
+          <button type="button" className="login-button" onClick={onClose}>Close</button>
+        )}
+      </header>
+
+      {toast && <div className={`auth-toast ${toast.tone}`}>{toast.message}</div>}
 
       <main className={authMainClassName}>
-        {toast && (
-          <div className={`auth-toast auth-toast-${toast.tone}`} role="status">
-            {toast.message}
+        <section className="auth-mobile-shell" aria-label="Login role selection">
+          <div className="auth-mobile-headline">
+            <h1>Login portal</h1>
           </div>
-        )}
 
-        {notice && (
-          <div className="auth-notice-banner" role="alert">
-            {notice}
-          </div>
-        )}
+          {notice && <p className="auth-notice">{notice}</p>}
 
-        {hasActiveSession ? (
-          isAdminLoggedIn ? (
-            renderAdminDashboard()
-          ) : (
-            renderSessionProfileCard()
-          )
-        ) : (
-          <div className="auth-tabs-wrapper">
-            <div className="auth-role-tabs">
-              <button
-                type="button"
-                className={`auth-tab ${role === 'admin' ? 'active' : ''}`}
-                onClick={() => {
-                  setRole('admin');
-                  setNotice('');
-                }}
-              >
-                Admin
-              </button>
-              <button
-                type="button"
-                className={`auth-tab ${role === 'user' ? 'active' : ''}`}
-                onClick={() => {
-                  setRole('user');
-                  setNotice('');
-                }}
-              >
-                User
-              </button>
-            </div>
+          {hasActiveSession
+            ? renderSessionProfileCard()
+            : (role === 'admin' ? renderAdminAuthForm() : renderUserPanel())}
+        </section>
 
-            {role === 'admin' ? renderAdminAuthForm() : renderUserAuthForm()}
-          </div>
-        )}
+        {isAdminLoggedIn && renderAdminDashboard()}
       </main>
     </div>
   );
