@@ -220,11 +220,8 @@ export default function AuthPortal({
   }, [itemForm.category, inventoryVersion]);
 
   const addItemSubSectionOptions = useMemo(() => {
-    if (itemForm.category === 'Clothing' && itemForm.section === 'Lehengas') {
-      return ['Everyday Edit', 'Festive Edit', 'Premium Edit'];
-    }
-    return ['Everyday Edit', 'Festive Edit', 'Premium Edit', 'Party Edit'];
-  }, [itemForm.category, itemForm.section, inventoryVersion]);
+    return ['Everyday Edit', 'Festive Edit', 'Premium Edit'];
+  }, [inventoryVersion]);
 
   const filteredWebsiteItems = useMemo(() => {
     const query = catalogueQuery.trim().toLowerCase();
@@ -924,171 +921,186 @@ export default function AuthPortal({
       <details className="auth-admin-section" open>
         <summary>Add New Item</summary>
         <form className="auth-item-form" onSubmit={handleAddItem}>
-          <label className="auth-field">
-            <span>Item name</span>
-            <input
-              type="text"
-              placeholder="Bridal Lehenga"
-              value={itemForm.name}
-              onChange={(event) => setItemForm((prev) => ({ ...prev, name: event.target.value }))}
-            />
-          </label>
-          <label className="auth-field">
-            <span>Price</span>
-            <div className="auth-price-row">
-              <input
-                type="text"
-                inputMode="decimal"
-                placeholder="250"
-                value={itemForm.price}
-                onChange={(event) => setItemForm((prev) => ({ ...prev, price: event.target.value }))}
-              />
-              <select
-                value={itemForm.currency}
-                onChange={(event) => setItemForm((prev) => ({ ...prev, currency: event.target.value }))}
-              >
-                {CURRENCY_OPTIONS.map((option) => (
-                  <option key={option.code} value={option.code}>{option.label}</option>
-                ))}
-              </select>
+          <div className="auth-form-section">
+            <h3>Basic info</h3>
+            <div className="auth-form-grid">
+              <label className="auth-field">
+                <span>Item name</span>
+                <input
+                  type="text"
+                  placeholder="Bridal Lehenga"
+                  value={itemForm.name}
+                  onChange={(event) => setItemForm((prev) => ({ ...prev, name: event.target.value }))}
+                />
+              </label>
+              <label className="auth-field">
+                <span>Price</span>
+                <div className="auth-price-row">
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="250"
+                    value={itemForm.price}
+                    onChange={(event) => setItemForm((prev) => ({ ...prev, price: event.target.value }))}
+                  />
+                  <select
+                    value={itemForm.currency}
+                    onChange={(event) => setItemForm((prev) => ({ ...prev, currency: event.target.value }))}
+                  >
+                    {CURRENCY_OPTIONS.map((option) => (
+                      <option key={option.code} value={option.code}>{option.label}</option>
+                    ))}
+                  </select>
+                </div>
+                {itemForm.currency === 'CUSTOM' && (
+                  <input
+                    type="text"
+                    placeholder="Type your currency symbol, e.g. Tk"
+                    value={itemForm.customCurrency}
+                    onChange={(event) => setItemForm((prev) => ({ ...prev, customCurrency: event.target.value }))}
+                    style={{ marginTop: '0.4rem' }}
+                  />
+                )}
+              </label>
+              <label className="auth-field">
+                <span>Category</span>
+                <select
+                  value={itemForm.category}
+                  onChange={(event) => setItemForm((prev) => ({ ...prev, category: event.target.value }))}
+                >
+                  {addItemCategoryOptions.map((option) => (
+                    <option key={option} value={option}>{option}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="auth-field">
+                <span>Section</span>
+                <select
+                  value={itemForm.section}
+                  onChange={(event) => setItemForm((prev) => ({ ...prev, section: event.target.value }))}
+                >
+                  {addItemSectionOptions.map((option) => (
+                    <option key={option} value={option}>{option}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="auth-field">
+                <span>Sub section</span>
+                <select
+                  value={itemForm.subSection}
+                  onChange={(event) => setItemForm((prev) => ({ ...prev, subSection: event.target.value }))}
+                >
+                  {addItemSubSectionOptions.map((option) => (
+                    <option key={option} value={option}>{option}</option>
+                  ))}
+                </select>
+              </label>
             </div>
-            {itemForm.currency === 'CUSTOM' && (
-              <input
-                type="text"
-                placeholder="Type your currency symbol, e.g. Tk"
-                value={itemForm.customCurrency}
-                onChange={(event) => setItemForm((prev) => ({ ...prev, customCurrency: event.target.value }))}
-                style={{ marginTop: '0.4rem' }}
-              />
-            )}
-          </label>
-          <label className="auth-field">
-            <span>Sizes</span>
-            <input
-              type="text"
-              placeholder="S, M, L, XL  or  500 ML"
-              value={itemForm.sizes}
-              onChange={(event) => setItemForm((prev) => ({ ...prev, sizes: event.target.value }))}
-            />
-          </label>
-          <label className="auth-field auth-field-full">
-            <span>Description (optional)</span>
-            <input
-              type="text"
-              placeholder="What makes this product worth buying"
-              value={itemForm.description}
-              onChange={(event) => setItemForm((prev) => ({ ...prev, description: event.target.value }))}
-            />
-          </label>
-          <label className="auth-field auth-field-full">
-            <span>Colors (optional, comma separated)</span>
-            <input
-              type="text"
-              placeholder="Leave blank if not applicable, e.g. skincare"
-              value={itemForm.colors}
-              onChange={(event) => setItemForm((prev) => ({ ...prev, colors: event.target.value }))}
-            />
-          </label>
-          <label className="auth-field">
-            <span>Stock quantity (optional)</span>
-            <input
-              type="number"
-              min="0"
-              placeholder="e.g. 5"
-              value={itemForm.stock}
-              onChange={(event) => setItemForm((prev) => ({ ...prev, stock: event.target.value }))}
-            />
-          </label>
-          <label className="auth-field">
-            <span>Rating (optional, 0-5)</span>
-            <input
-              type="number"
-              min="0"
-              max="5"
-              step="0.1"
-              placeholder="e.g. 4.5"
-              value={itemForm.rating}
-              onChange={(event) => setItemForm((prev) => ({ ...prev, rating: event.target.value }))}
-            />
-          </label>
-          <label className="auth-field">
-            <span>Category</span>
-            <select
-              value={itemForm.category}
-              onChange={(event) => setItemForm((prev) => ({ ...prev, category: event.target.value }))}
-            >
-              {addItemCategoryOptions.map((option) => (
-                <option key={option} value={option}>{option}</option>
-              ))}
-            </select>
-          </label>
-          <label className="auth-field">
-            <span>Section</span>
-            <select
-              value={itemForm.section}
-              onChange={(event) => setItemForm((prev) => ({ ...prev, section: event.target.value }))}
-            >
-              {addItemSectionOptions.map((option) => (
-                <option key={option} value={option}>{option}</option>
-              ))}
-            </select>
-          </label>
-          <label className="auth-field">
-            <span>Sub section</span>
-            <select
-              value={itemForm.subSection}
-              onChange={(event) => setItemForm((prev) => ({ ...prev, subSection: event.target.value }))}
-            >
-              {addItemSubSectionOptions.map((option) => (
-                <option key={option} value={option}>{option}</option>
-              ))}
-            </select>
-          </label>
-          <label className="auth-field auth-field-full">
-            <span>Upload image (max 10MB)</span>
-            <input
-              type="file"
-              accept="image/png,image/jpeg,image/webp,image/gif"
-              onChange={handleItemImageUpload}
-              disabled={isUploadingItemImage}
-            />
-          </label>
-          <p className="auth-upload-hint auth-field-full">
-            {selectedUploadFileName ? `Selected file: ${selectedUploadFileName}` : 'Choose a file to upload it directly to Cloudinary.'}
-          </p>
-          <p className="auth-upload-hint auth-field-full">
-            The file uploads straight to Cloudinary and the returned image URL is saved automatically.
-          </p>
-          <div className="auth-upload-preview auth-field-full">
-            <img src={itemForm.image || 'new-arrival.png'} alt="Selected item preview" />
-            <p>
-              {hasUploadedItemImage
-                ? 'Image linked successfully. You can add the item now.'
-                : 'No uploaded image linked yet. Default image will be used.'}
-            </p>
           </div>
 
-          <label className="auth-field auth-field-full">
-            <span>Add gallery images (optional, upload one at a time)</span>
-            <input
-              type="file"
-              accept="image/png,image/jpeg,image/webp,image/gif"
-              onChange={handleAddGalleryImage}
-              disabled={isUploadingGalleryImage}
-            />
-          </label>
-          {itemForm.gallery.length > 0 && (
-            <div className="auth-gallery-preview auth-field-full">
-              {itemForm.gallery.map((url, index) => (
-                <div key={`${url}-${index}`} className="auth-gallery-thumb">
-                  <img src={url} alt={`Gallery ${index + 1}`} />
-                  <button type="button" onClick={() => handleRemoveGalleryImage(index)}>
-                    Remove
-                  </button>
-                </div>
-              ))}
+          <div className="auth-form-section">
+            <h3>Details</h3>
+            <div className="auth-form-grid">
+              <label className="auth-field">
+                <span>Sizes</span>
+                <input
+                  type="text"
+                  placeholder="S, M, L, XL or 500 ML"
+                  value={itemForm.sizes}
+                  onChange={(event) => setItemForm((prev) => ({ ...prev, sizes: event.target.value }))}
+                />
+              </label>
+              <label className="auth-field">
+                <span>Stock</span>
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="e.g. 5"
+                  value={itemForm.stock}
+                  onChange={(event) => setItemForm((prev) => ({ ...prev, stock: event.target.value }))}
+                />
+              </label>
+              <label className="auth-field">
+                <span>Rating</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="5"
+                  step="0.1"
+                  placeholder="e.g. 4.5"
+                  value={itemForm.rating}
+                  onChange={(event) => setItemForm((prev) => ({ ...prev, rating: event.target.value }))}
+                />
+              </label>
+              <label className="auth-field">
+                <span>Colors</span>
+                <input
+                  type="text"
+                  placeholder="Optional, comma separated"
+                  value={itemForm.colors}
+                  onChange={(event) => setItemForm((prev) => ({ ...prev, colors: event.target.value }))}
+                />
+              </label>
+              <label className="auth-field auth-field-full">
+                <span>Description</span>
+                <input
+                  type="text"
+                  placeholder="What makes this product worth buying"
+                  value={itemForm.description}
+                  onChange={(event) => setItemForm((prev) => ({ ...prev, description: event.target.value }))}
+                />
+              </label>
             </div>
-          )}
+          </div>
+
+          <div className="auth-form-section">
+            <h3>Media</h3>
+            <div className="auth-form-grid">
+              <label className="auth-field auth-field-full">
+                <span>Upload image</span>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  onChange={handleItemImageUpload}
+                  disabled={isUploadingItemImage}
+                />
+              </label>
+              <label className="auth-field auth-field-full">
+                <span>Gallery images</span>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  onChange={handleAddGalleryImage}
+                  disabled={isUploadingGalleryImage}
+                />
+              </label>
+            </div>
+            <div className="auth-upload-hint auth-field-full">
+              {selectedUploadFileName
+                ? `Selected file: ${selectedUploadFileName}`
+                : 'Upload directly to Cloudinary and it will be saved automatically.'}
+            </div>
+            <div className="auth-upload-preview auth-field-full">
+              <img src={itemForm.image || 'new-arrival.png'} alt="Selected item preview" />
+              <p>
+                {hasUploadedItemImage
+                  ? 'Image linked successfully. You can add the item now.'
+                  : 'No uploaded image linked yet. Default image will be used.'}
+              </p>
+            </div>
+            {itemForm.gallery.length > 0 && (
+              <div className="auth-gallery-preview auth-field-full">
+                {itemForm.gallery.map((url, index) => (
+                  <div key={`${url}-${index}`} className="auth-gallery-thumb">
+                    <img src={url} alt={`Gallery ${index + 1}`} />
+                    <button type="button" onClick={() => handleRemoveGalleryImage(index)}>
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           <div className="auth-actions auth-field-full">
             <button type="submit" className="primary-button" disabled={isUploadingItemImage || isUploadingGalleryImage}>
@@ -1108,6 +1120,7 @@ export default function AuthPortal({
                   <h3>{item.name}</h3>
                   <p>{item.price} • Sizes: {item.sizes || 'N/A'}</p>
                   <p>Category: {item.category || 'General'} • Section: {item.section || 'Admin Picks'}</p>
+                  <p>Sub section: {item.subSection || 'Everyday Edit'}</p>
                   {item.stock !== '' && item.stock !== undefined && <p>Stock: {item.stock}</p>}
                 </div>
                 <button

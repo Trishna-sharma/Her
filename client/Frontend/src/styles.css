@@ -2402,6 +2402,25 @@ button {
 
 .auth-item-form {
   margin-top: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.auth-form-section {
+  border: 1px solid rgba(113, 84, 176, 0.14);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.72);
+  padding: 0.85rem;
+}
+
+.auth-form-section h3 {
+  margin: 0 0 0.7rem;
+  color: #2b1d4f;
+  font-size: 0.95rem;
+}
+
+.auth-form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.7rem;

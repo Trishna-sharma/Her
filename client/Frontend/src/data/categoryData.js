@@ -102,22 +102,22 @@ export const categoryDetailSections = {
     Kurtis: withImage([
       { name: 'Short Kurti', price: '$59' },
       { name: 'Long Kurti', price: '$79' },
-      { name: 'Party Kurti', price: '$95' },
+      { name: 'Festive Kurti', price: '$95' },
     ]),
     'Salwar Kameez': withImage([
       { name: 'Cotton Salwar Kameez', price: '$89' },
       { name: 'Printed Salwar Kameez', price: '$109' },
-      { name: 'Party Salwar Kameez', price: '$139' },
+      { name: 'Elegant Salwar Kameez', price: '$139' },
     ]),
     Tops: withImage([
       { name: 'Casual Top', price: '$45' },
       { name: 'Embroidered Top', price: '$68' },
-      { name: 'Party Top', price: '$82' },
+      { name: 'Luxe Top', price: '$82' },
     ]),
     Sarees: withImage([
       { name: 'Cotton Saree', price: '$89' },
       { name: 'Silk Saree', price: '$149' },
-      { name: 'Party Saree', price: '$189' },
+      { name: 'Festive Saree', price: '$189' },
     ]),
     Anarkalis: withImage([
       { name: 'Classic Anarkali', price: '$119' },
@@ -198,7 +198,7 @@ export const categoryDetailSections = {
     Sandals: withImage([
       { name: 'Bridal Sandals', price: '$88' },
       { name: 'Casual Sandals', price: '$52' },
-      { name: 'Party Sandals', price: '$69' },
+      { name: 'Festive Sandals', price: '$69' },
     ]),
     Juttis: withImage([
       { name: 'Mirror Juttis', price: '$58' },
@@ -207,7 +207,7 @@ export const categoryDetailSections = {
     ]),
     'Block Heels': withImage([
       { name: 'Classic Block Heel', price: '$72' },
-      { name: 'Party Block Heel', price: '$84' },
+      { name: 'Luxe Block Heel', price: '$84' },
       { name: 'Bridal Block Heel', price: '$96' },
     ]),
   },
@@ -230,7 +230,7 @@ export const categoryDetailSections = {
     'Sling Bags': withImage([
       { name: 'Mini Sling Bag', price: '$55' },
       { name: 'Crossbody Sling', price: '$61' },
-      { name: 'Party Sling Bag', price: '$69' },
+      { name: 'Elegant Sling Bag', price: '$69' },
     ]),
     Backpacks: withImage([
       { name: 'Everyday Backpack', price: '$81' },
@@ -279,7 +279,7 @@ export const categorySectionCatalogueRows = {
         { name: 'Peach Sequin Lehenga', price: '$299' },
         { name: 'Midnight Blue Lehenga', price: '$319' },
         { name: 'Lilac Glam Lehenga', price: '$327' },
-        { name: 'Fuchsia Party Lehenga', price: '$339' },
+        { name: 'Fuchsia Luxe Lehenga', price: '$339' },
       ]),
     ],
   },

@@ -6,7 +6,6 @@ const CATALOGUE_OVERRIDES_KEY = 'herby-catalogue-overrides';
 
 export const rowThemes = [
   { label: 'Everyday Edit', namePrefix: 'Everyday', priceDelta: -8 },
-  { label: 'Party Edit', namePrefix: 'Party', priceDelta: 10 },
   { label: 'Festive Edit', namePrefix: 'Festive', priceDelta: 20 },
   { label: 'Premium Edit', namePrefix: 'Premium', priceDelta: 30 },
 ];
