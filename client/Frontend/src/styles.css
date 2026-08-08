@@ -134,6 +134,7 @@ button {
 }
 
 /* ============================================================
+ /* ============================================================
    SHARED — LOGO
    Uses theme-specific image assets for the site brand.
    ============================================================ */
@@ -150,10 +151,12 @@ button {
 
 .logo img {
   display: block;
-  height: 54px;
+  /* INCREASE THIS VALUE TO MAKE IT LARGER */
+  height: 72px; /* Changed from 54px */
   width: auto;
   object-fit: contain;
   pointer-events: none;
+  transition: height 0.2s ease; /* Optional: smooth resizing */
 }
 
 .logo-home {
@@ -163,7 +166,6 @@ button {
   color: inherit;
   cursor: pointer;
 }
-
 /* ============================================================
    SHARED — BUTTONS
    ============================================================ */
