@@ -152,7 +152,7 @@ button {
 .logo img {
   display: block;
   /* INCREASE THIS VALUE TO MAKE IT LARGER */
-  height: 72px; /* Changed from 54px */
+  height: 100px; /* Changed from 54px */
   width: auto;
   object-fit: contain;
   pointer-events: none;
