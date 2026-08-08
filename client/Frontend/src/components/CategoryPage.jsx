@@ -27,8 +27,8 @@ export default function CategoryPage({ categories, onBack, onNavigate, activePag
       <header className="page-top-nav">
         <button type="button" className="logo logo-home" onClick={() => onNavigate('welcome')} aria-label="Go to home page">
           <img
-            src={theme === 'dark' ? '/1.png' : '/2.png'}
-            alt="Her by Mou logo"
+            src={theme === 'dark' ? '/bella_dark.png' : '/bella_light.png'}
+            alt="Bella logo"
           />
         </button>
         <Navigation onNavigate={onNavigate} activePage={activePage} theme={theme} onToggleTheme={onToggleTheme} />

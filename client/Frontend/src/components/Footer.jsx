@@ -27,8 +27,8 @@ export default function Footer({ onNavigate }) {
         <section className="site-footer-brand">
           <button type="button" className="logo logo-home" onClick={() => onNavigate('welcome')} aria-label="Go to home page">
             <img
-              src={theme === 'dark' ? '/1.png' : '/2.png'}
-              alt="Her by Mou logo"
+              src={theme === 'dark' ? '/bella_dark.png' : '/bella_light.png'}
+              alt="Bellalogo"
             />
           </button>
           <p>Premium womenswear curated for events, celebrations, and everyday elegance.</p>
