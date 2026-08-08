@@ -36,36 +36,45 @@ export default function Startshopping({
   );
 
   const orderSingleMessage = (item) => [
-    'Hello Her by Mou,',
+    'Hello Bella,',
     '',
-    'I would like to confirm this order from my saved cart:',
+    'I would like to confirm this order:',
     `Item: ${item.name}`,
-    `Category: ${item.category}`,
-    `Section: ${item.section}`,
-    `Color: ${item.color}`,
-    `Size: ${item.size}`,
+    item.category && `Category: ${item.category}`,
+    item.section && `Section: ${item.section}`,
+    item.color && `Color: ${item.color}`,
+    item.size && `Size: ${item.size}`,
     `Quantity: ${item.quantity}`,
     `Price: ${item.price}`,
-  ].join('\n');
+  ]
+  .filter(Boolean) // Removes false, null, undefined, or empty strings
+  .join('\n');
 
   const orderAllMessage = () => {
-    const lines = [
-      'Hello Her by Mou,',
+    const header = [
+      'Hello Bella,',
       '',
       'I would like to confirm all items from my saved cart:',
       '',
     ];
 
-    cartItems.forEach((item, index) => {
-      lines.push(`${index + 1}. ${item.name}`);
-      lines.push(`   Category: ${item.category} / ${item.section}`);
-      lines.push(`   Color: ${item.color} | Size: ${item.size}`);
-      lines.push(`   Quantity: ${item.quantity} | Price: ${item.price}`);
-      lines.push('');
+    const formattedItems = cartItems.map((item, index) => {
+      return [
+        `${index + 1}. Item: ${item.name}`,
+        item.category && `   Category: ${item.category}`,
+        item.section && `   Section: ${item.section}`,
+        item.color && `   Color: ${item.color}`,
+        item.size && `   Size: ${item.size}`,
+        `   Quantity: ${item.quantity}`,
+        `   Price: ${item.price}`,
+      ]
+      .filter(Boolean)
+      .join('\n');
     });
 
-    lines.push(`Estimated subtotal: $${cartTotal}`);
-    return lines.join('\n');
+    const footer = `\nEstimated subtotal: $${cartTotal}`;
+
+    return [...header, formattedItems.join('\n\n'), footer].join('\n');
   };
 
   return (

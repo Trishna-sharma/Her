@@ -32,8 +32,7 @@ export default function WelcomeScreen({ onContinue, onNavigate, activePage, onLo
           Made for Women by Woman.<br/>
         </h1>
         <p>
-          Discover clothing, jewellery, makeup, shoes, bags, and skin care
-          picks designed for Bangladeshi shoppers.
+          Discover skin care, makeuppicks exclusively for Bangladeshi shoppers.
         </p>
         <button className="primary-button" onClick={onContinue}>
           Explore

@@ -1501,8 +1501,42 @@ button {
     align-items: center;
   }
 
+  .top-nav,
+  .page-top-nav {
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.8rem 0.9rem;
+  }
+
+  .top-nav > .logo,
+  .page-top-nav > .logo {
+    flex: 0 0 100%;
+    display: flex;
+    justify-content: center;
+  }
+
+  .top-nav .nav-shell,
+  .page-top-nav .nav-shell {
+    flex: 0 0 100%;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .top-nav .auth-status-wrap,
+  .page-top-nav .auth-status-wrap {
+    flex: 0 0 100%;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+  }
+
   .logo {
     font-size: 2rem;
+  }
+
+  .logo img {
+    height: 72px;
   }
 
   .page-links {
@@ -3562,8 +3596,10 @@ body[data-theme='dark'] .auth-compact-card,
 body[data-theme='dark'] .auth-form-shell,
 body[data-theme='dark'] .auth-admin-manager,
 body[data-theme='dark'] .auth-admin-section,
+body[data-theme='dark'] .auth-form-section,
 body[data-theme='dark'] .auth-item-card,
 body[data-theme='dark'] .auth-catalog-card,
+body[data-theme='dark'] .auth-upload-preview,
 body[data-theme='dark'] .contact-form-shell,
 body[data-theme='dark'] .contact-form-card,
 body[data-theme='dark'] .category-detail-hero,
@@ -3599,6 +3635,10 @@ body[data-theme='dark'] .auth-profile-card h2,
 body[data-theme='dark'] .auth-admin-manager h2,
 body[data-theme='dark'] .auth-admin-section summary,
 body[data-theme='dark'] .auth-headline h2 {
+  color: #fff7f2;
+}
+
+body[data-theme='dark'] .auth-form-section h3 {
   color: #fff7f2;
 }
 
