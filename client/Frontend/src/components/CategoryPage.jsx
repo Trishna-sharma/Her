@@ -56,6 +56,7 @@ export default function CategoryPage({
   onToggleTheme,
 }) {
   const scrollRef = useRef(null);
+  const arrivalsRef = useRef(null);
 
   const scroll = (direction) => {
     if (scrollRef.current) {
@@ -108,54 +109,6 @@ export default function CategoryPage({
         <AuthStatusButton authSession={authSession} onClick={onLoginClick} />
       </header>
 
-      <section className="new-arrivals-highlight" aria-label="New arrivals">
-        <div className="new-arrivals-head">
-          <p>Just landed</p>
-          <h2>New arrivals</h2>
-        </div>
-
-        <div className="new-arrivals-track" ref={scrollRef}>
-          {arrivals.map((item) => (
-            <article key={item.id} className="new-arrival-card">
-              <button
-                type="button"
-                className="new-arrival-image-btn"
-                onClick={() => onNavigate('detail', item.category, item.section)}
-                aria-label={`Open ${item.name}`}
-              >
-                <img src={item.img} alt={item.name} />
-              </button>
-
-              <div className="new-arrival-meta">
-                <h3>{item.name}</h3>
-                <p>{item.price}</p>
-              </div>
-
-              <div className="new-arrival-actions">
-                <button type="button" className="primary-button" onClick={() => addArrivalToCart(item)}>
-                  Add to cart
-                </button>
-                <button
-                  type="button"
-                  className="new-arrival-whatsapp"
-                  onClick={() => openWhatsApp(arrivalOrderMessage(item))}
-                >
-                  WhatsApp order
-                </button>
-              </div>
-            </article>
-          ))}
-        </div>
-
-        <div className="arrivals-footer">
-          <span className="hero-sticker-label">New arrivals</span>
-          <div className="arrivals-arrows">
-            <button className="arr-arrow" onClick={() => scroll('left')} aria-label="Previous">←</button>
-            <button className="arr-arrow" onClick={() => scroll('right')} aria-label="Next">→</button>
-          </div>
-        </div>
-      </section>
-
       <div className="category-page-content">
         <aside className="category-panel">
           <p className="sidebar-label">Shop by category</p>
@@ -181,8 +134,8 @@ export default function CategoryPage({
               bags, and skin care collections in one vibrant place.
             </p>
             <div className="hero-actions">
-              <button className="primary-button" onClick={() => onNavigate('gallery', categories[0])}>
-                Browse all collections
+              <button className="primary-button" onClick={() => arrivalsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+                Browse new arrivals
               </button>
               <button className="secondary-button" onClick={onBack}>
                 Back to welcome
@@ -190,12 +143,38 @@ export default function CategoryPage({
             </div>
           </div>
 
-          <div className="hero-visual">
-            <div className="arrivals-scroll-track">
-              {arrivals.map((item, i) => (
-                <div className="arrival-slide" key={i}>
-                  <img src={item.img} alt={`Arrival ${i + 1}`} />
-                </div>
+          <div className="hero-visual" ref={arrivalsRef}>
+            <div className="new-arrivals-track compact">
+              {arrivals.map((item) => (
+                <article key={item.id} className="new-arrival-card compact">
+                  <button
+                    type="button"
+                    className="new-arrival-image-btn"
+                    onClick={() => onNavigate('detail', item.category, item.section)}
+                    aria-label={`Open ${item.name}`}
+                  >
+                    <img src={item.img} alt={item.name} />
+                  </button>
+
+                  <div className="new-arrival-meta">
+                    <h3>{item.name}</h3>
+                    <p>{item.price}</p>
+                  </div>
+
+                  <div className="new-arrival-actions compact">
+                    <button type="button" className="primary-button" onClick={() => addArrivalToCart(item)}>
+                      Add to cart
+                    </button>
+                    <button
+                      type="button"
+                      className="whatsapp-icon-button"
+                      onClick={() => openWhatsApp(arrivalOrderMessage(item))}
+                      aria-label={`Order ${item.name} on WhatsApp`}
+                    >
+                      <span aria-hidden="true">✆</span>
+                    </button>
+                  </div>
+                </article>
               ))}
             </div>
           </div>

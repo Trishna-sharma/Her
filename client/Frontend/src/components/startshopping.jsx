@@ -236,6 +236,7 @@ export default function Startshopping({
                 {orderHistory.length > 0 && (
                   <div className="saved-orders-history" aria-label="Order history">
                     <h3>Your recent orders</h3>
+                    <p className="saved-orders-caption">Your order status updates here after admin confirms packing, delivery, or completion.</p>
                     {orderHistory.map((order) => (
                       <article key={order.id} className="saved-order-card">
                         <div className="saved-order-head">

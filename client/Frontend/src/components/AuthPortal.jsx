@@ -1358,6 +1358,7 @@ export default function AuthPortal({
 
       <details className="auth-admin-section" open>
         <summary>Order Tracker</summary>
+        <p className="auth-catalog-caption">Update status here after you receive the WhatsApp order confirmation.</p>
 
         {adminOrders.length === 0 ? (
           <p className="auth-catalog-empty">No orders yet. Orders appear here after customers confirm cart on WhatsApp.</p>
