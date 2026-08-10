@@ -8,21 +8,25 @@ import {
   getSectionsForCategory,
   markCatalogueItemDeleted,
 } from '../data/catalogAdminStore.js';
+import { buildProductKey, getProductReviewStats } from '../data/orderStore.js';
 
 const WHATSAPP_NUMBER = '8801853314954';
 
-function buildProductDetails(item, rowTitle) {
+function buildProductDetails(item, rowTitle, category, section) {
   const nameSeed = item.name.length;
   const parsedRating = Number.parseFloat(item.rating);
   const parsedStock = item.stock !== undefined && item.stock !== null && String(item.stock).trim() !== ''
     ? Number.parseInt(item.stock, 10)
     : null;
+  const liveReview = getProductReviewStats(
+    buildProductKey({ category, section, rowTitle, name: item.name })
+  );
 
   return {
     ...item,
     rowTitle,
-    rating: Number.isFinite(parsedRating) && parsedRating > 0 ? parsedRating : (4 + (nameSeed % 8) / 10),
-    reviews: item.reviews || 80 + nameSeed * 3,
+    rating: liveReview?.rating || (Number.isFinite(parsedRating) && parsedRating > 0 ? parsedRating : (4 + (nameSeed % 8) / 10)),
+    reviews: liveReview?.reviews || item.reviews || 80 + nameSeed * 3,
     description:
       (item.description && item.description.trim()) ||
       `${item.name} is available now — reach out for full details on this item.`,
@@ -138,7 +142,7 @@ export default function CategoryDetail({
   };
 
   const openProduct = (item, rowTitle) => {
-    const built = buildProductDetails(item, rowTitle);
+    const built = buildProductDetails(item, rowTitle, category, activeSection);
     setSelectedProduct(built);
     setSelectedImageIndex(0);
     setSelectedColor(built.colors[0] || 'Default');
@@ -297,7 +301,7 @@ export default function CategoryDetail({
                           aria-label="Add to wishlist"
                           onClick={(event) => {
                             event.stopPropagation();
-                            const details = buildProductDetails(item, row.title);
+                            const details = buildProductDetails(item, row.title, category, activeSection);
                             onToggleWishlist(
                               createItemPayload(
                                 details,
@@ -480,10 +484,16 @@ export default function CategoryDetail({
                           quantity
                         )
                       );
-                      openWhatsApp(orderMessage(selectedProduct, selectedProduct.rowTitle));
                     }}
                   >
                     Add to cart
+                  </button>
+                  <button
+                    type="button"
+                    className="product-whatsapp-button"
+                    onClick={() => openWhatsApp(orderMessage(selectedProduct, selectedProduct.rowTitle))}
+                  >
+                    Order on WhatsApp
                   </button>
                   <button
                     type="button"

@@ -1,0 +1,162 @@
+const ORDERS_KEY = 'herby-order-requests';
+const PRODUCT_RATINGS_KEY = 'herby-product-ratings';
+
+export const ORDER_STATUSES = [
+  { value: 'pending', label: 'Pending confirmation' },
+  { value: 'packing', label: 'Packing' },
+  { value: 'delivery_2d', label: 'Out for delivery (2 days)' },
+  { value: 'delivered', label: 'Successfully delivered' },
+];
+
+function readJson(key, fallback) {
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw);
+    return parsed;
+  } catch {
+    return fallback;
+  }
+}
+
+function writeJson(key, value) {
+  window.localStorage.setItem(key, JSON.stringify(value));
+}
+
+function normalizeText(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+export function buildProductKey({ category, section, rowTitle, name }) {
+  return [category, section, rowTitle, name].map(normalizeText).join('::');
+}
+
+export function listOrders() {
+  const parsed = readJson(ORDERS_KEY, []);
+  return Array.isArray(parsed) ? parsed : [];
+}
+
+export function writeOrders(nextOrders) {
+  writeJson(ORDERS_KEY, nextOrders);
+}
+
+export function createOrderFromCart({ cartItems = [], authSession = null, subtotal = 0 }) {
+  const now = new Date();
+  const id = `HBM-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+  const customerName = authSession?.name || authSession?.email || 'Guest customer';
+  const customerEmail = authSession?.email || '';
+
+  const items = cartItems.map((item) => ({
+    itemId: item.itemId,
+    cartId: item.cartId,
+    name: item.name,
+    price: item.price,
+    quantity: item.quantity,
+    category: item.category,
+    section: item.section,
+    rowTitle: item.rowTitle || 'Everyday Edit',
+    color: item.color || 'Default',
+    size: item.size || 'Default',
+    productKey: buildProductKey({
+      category: item.category,
+      section: item.section,
+      rowTitle: item.rowTitle || 'Everyday Edit',
+      name: item.name,
+    }),
+    userRating: null,
+  }));
+
+  const order = {
+    id,
+    createdAt: now.toISOString(),
+    customerName,
+    customerEmail,
+    status: 'pending',
+    statusNote: '',
+    subtotal,
+    items,
+  };
+
+  const existing = listOrders();
+  writeOrders([order, ...existing]);
+  return order;
+}
+
+export function updateOrderStatus(orderId, nextStatus, statusNote = '') {
+  const existing = listOrders();
+  const updated = existing.map((order) => (
+    order.id === orderId
+      ? {
+          ...order,
+          status: nextStatus,
+          statusNote: statusNote || order.statusNote || '',
+          updatedAt: new Date().toISOString(),
+        }
+      : order
+  ));
+
+  writeOrders(updated);
+}
+
+function getRatingsMap() {
+  const parsed = readJson(PRODUCT_RATINGS_KEY, {});
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+  return parsed;
+}
+
+function writeRatingsMap(map) {
+  writeJson(PRODUCT_RATINGS_KEY, map);
+}
+
+export function getProductReviewStats(productKey) {
+  const ratings = getRatingsMap();
+  const stats = ratings[productKey];
+  if (!stats || !stats.count || !stats.total) {
+    return null;
+  }
+
+  return {
+    rating: stats.total / stats.count,
+    reviews: stats.count,
+  };
+}
+
+export function rateDeliveredOrderItem(orderId, itemCartId, ratingValue) {
+  const numericRating = Number.parseFloat(ratingValue);
+  if (!Number.isFinite(numericRating) || numericRating < 1 || numericRating > 5) return false;
+
+  let updatedProductKey = '';
+  const existingOrders = listOrders();
+  const updatedOrders = existingOrders.map((order) => {
+    if (order.id !== orderId || order.status !== 'delivered') return order;
+
+    const nextItems = (order.items || []).map((item) => {
+      if (item.cartId !== itemCartId || item.userRating !== null) return item;
+      updatedProductKey = item.productKey;
+      return {
+        ...item,
+        userRating: numericRating,
+      };
+    });
+
+    return {
+      ...order,
+      items: nextItems,
+      updatedAt: new Date().toISOString(),
+    };
+  });
+
+  if (!updatedProductKey) return false;
+
+  writeOrders(updatedOrders);
+
+  const ratings = getRatingsMap();
+  const current = ratings[updatedProductKey] || { total: 0, count: 0 };
+  ratings[updatedProductKey] = {
+    total: current.total + numericRating,
+    count: current.count + 1,
+  };
+  writeRatingsMap(ratings);
+
+  return true;
+}

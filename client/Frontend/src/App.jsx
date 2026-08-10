@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react';
+﻿import { useEffect, useRef, useState } from 'react';
 import WelcomeScreen from './components/WelcomeScreen.jsx';
 import CategoryPage from './components/CategoryPage.jsx';
 import Gallery from './components/Gallery.jsx';
@@ -36,6 +36,16 @@ export default function App() {
   const [authSession, setAuthSession] = useState(null);
   const [authEntryRole, setAuthEntryRole] = useState('admin');
   const [authReturnTarget, setAuthReturnTarget] = useState(null);
+  const [uiToast, setUiToast] = useState(null);
+  const toastTimerRef = useRef(null);
+
+  const showUiToast = (message, tone = 'success') => {
+    setUiToast({ message, tone });
+    if (toastTimerRef.current) {
+      window.clearTimeout(toastTimerRef.current);
+    }
+    toastTimerRef.current = window.setTimeout(() => setUiToast(null), 1900);
+  };
 
   useEffect(() => {
     try {
@@ -73,14 +83,24 @@ export default function App() {
     window.localStorage.setItem(THEME_KEY, theme);
   }, [theme]);
 
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) {
+        window.clearTimeout(toastTimerRef.current);
+      }
+    };
+  }, []);
+
   const toggleWishlistItem = (item) => {
     if (!item?.itemId) return;
 
     setWishlistItems((previous) => {
       const exists = previous.some((entry) => entry.itemId === item.itemId);
       if (exists) {
+        showUiToast('Removed from wishlist.', 'neutral');
         return previous.filter((entry) => entry.itemId !== item.itemId);
       }
+      showUiToast('Saved to wishlist.', 'success');
       return [...previous, item];
     });
   };
@@ -91,6 +111,7 @@ export default function App() {
     setCartItems((previous) => {
       const index = previous.findIndex((entry) => entry.cartId === item.cartId);
       if (index === -1) {
+        showUiToast(`${item.name} added to cart.`, 'success');
         return [...previous, item];
       }
 
@@ -99,6 +120,7 @@ export default function App() {
         ...updated[index],
         quantity: updated[index].quantity + item.quantity,
       };
+      showUiToast(`${item.name} quantity updated in cart.`, 'success');
       return updated;
     });
   };
@@ -112,7 +134,13 @@ export default function App() {
   };
 
   const removeCartItem = (cartId) => {
-    setCartItems((previous) => previous.filter((item) => item.cartId !== cartId));
+    setCartItems((previous) => {
+      const removed = previous.find((item) => item.cartId === cartId);
+      if (removed) {
+        showUiToast(`${removed.name} removed from cart.`, 'neutral');
+      }
+      return previous.filter((item) => item.cartId !== cartId);
+    });
   };
 
   const moveWishlistItemToCart = (itemId) => {
@@ -144,6 +172,7 @@ export default function App() {
 
   const renderPage = (content) => (
     <div className="app-container full-bleed">
+      {uiToast && <div className={`ui-toast ${uiToast.tone}`}>{uiToast.message}</div>}
       {content}
     </div>
   );
@@ -202,6 +231,7 @@ export default function App() {
         categories={categories}
         onBack={() => navTo('welcome')}
         onNavigate={navTo}
+        onAddCartItem={addCartItem}
         activePage={page}
         onLoginClick={openLogin}
         authSession={authSession}

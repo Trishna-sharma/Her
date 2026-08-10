@@ -15,6 +15,7 @@ import {
   unmarkCatalogueItemDeleted,
   upsertCatalogueItemOverride,
 } from '../data/catalogAdminStore.js';
+import { ORDER_STATUSES, listOrders, updateOrderStatus } from '../data/orderStore.js';
 
 const ADMIN_USERS_KEY = 'herby-admin-users';
 
@@ -137,6 +138,7 @@ export default function AuthPortal({
   const [notice, setNotice] = useState('');
   const [toast, setToast] = useState(null);
   const [inventoryVersion, setInventoryVersion] = useState(0);
+  const [ordersVersion, setOrdersVersion] = useState(0);
 
   // OTP Verification States
   const [otpStep, setOtpStep] = useState(false);
@@ -169,6 +171,7 @@ export default function AuthPortal({
   const [selectedUploadFileName, setSelectedUploadFileName] = useState('');
   const [isUploadingGalleryImage, setIsUploadingGalleryImage] = useState(false);
   const [uploadingCatalogueGalleryKey, setUploadingCatalogueGalleryKey] = useState('');
+  const [orderNotes, setOrderNotes] = useState({});
   const hasUploadedItemImage = itemForm.image && itemForm.image !== 'new-arrival.png';
 
   const toastTimerRef = useRef(null);
@@ -202,6 +205,10 @@ export default function AuthPortal({
 
   const managedItems = useMemo(() => getAdminItems(), [inventoryVersion]);
   const websiteItems = useMemo(() => listAllWebsiteItems(), [inventoryVersion]);
+  const adminOrders = useMemo(() => {
+    const orders = listOrders();
+    return orders.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+  }, [ordersVersion]);
 
   const categoryOptions = useMemo(
     () => ['All', ...new Set(websiteItems.map((item) => item.category))],
@@ -795,6 +802,13 @@ export default function AuthPortal({
     showToast('Item reset to original data.', 'neutral');
   };
 
+  const handleOrderStatusChange = (orderId, status) => {
+    const note = String(orderNotes[orderId] || '').trim();
+    updateOrderStatus(orderId, status, note);
+    setOrdersVersion((value) => value + 1);
+    showToast('Order status updated.', 'success');
+  };
+
   const buildSessionDetails = () => {
     if (!authSession) {
       return {
@@ -1340,6 +1354,72 @@ export default function AuthPortal({
             })
           )}
         </div>
+      </details>
+
+      <details className="auth-admin-section" open>
+        <summary>Order Tracker</summary>
+
+        {adminOrders.length === 0 ? (
+          <p className="auth-catalog-empty">No orders yet. Orders appear here after customers confirm cart on WhatsApp.</p>
+        ) : (
+          <div className="auth-catalog-list">
+            {adminOrders.map((order) => (
+              <article key={order.id} className="auth-catalog-card">
+                <div className="auth-catalog-meta">
+                  <h3>{order.id}</h3>
+                  <p>{order.customerName || 'Guest customer'}{order.customerEmail ? ` • ${order.customerEmail}` : ''}</p>
+                  <small>{new Date(order.createdAt).toLocaleString()}</small>
+                </div>
+
+                <div className="auth-catalog-grid">
+                  <label className="auth-field">
+                    <span>Status</span>
+                    <select
+                      value={order.status}
+                      onChange={(event) => handleOrderStatusChange(order.id, event.target.value)}
+                    >
+                      {ORDER_STATUSES.map((status) => (
+                        <option key={status.value} value={status.value}>{status.label}</option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="auth-field auth-field-full">
+                    <span>Status note (optional)</span>
+                    <input
+                      type="text"
+                      placeholder="Packing now, delivery in 2 days"
+                      value={orderNotes[order.id] ?? order.statusNote ?? ''}
+                      onChange={(event) => setOrderNotes((prev) => ({
+                        ...prev,
+                        [order.id]: event.target.value,
+                      }))}
+                    />
+                  </label>
+                </div>
+
+                <div className="auth-order-items">
+                  {(order.items || []).map((item) => (
+                    <p key={`${order.id}-${item.cartId}`}>
+                      {item.name} • Qty {item.quantity}
+                      {item.userRating !== null ? ` • User rating ${item.userRating}/5` : ''}
+                    </p>
+                  ))}
+                </div>
+
+                <div className="auth-catalog-actions">
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={() => handleOrderStatusChange(order.id, order.status)}
+                  >
+                    Save status note
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
       </details>
     </div>
   );

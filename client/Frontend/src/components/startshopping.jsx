@@ -1,6 +1,12 @@
-﻿import React, { useMemo, useState } from 'react';
+﻿import React, { useEffect, useMemo, useState } from 'react';
 import Navigation from './Navigation.jsx';
 import AuthStatusButton from './AuthStatusButton.jsx';
+import {
+  ORDER_STATUSES,
+  createOrderFromCart,
+  listOrders,
+  rateDeliveredOrderItem,
+} from '../data/orderStore.js';
 
 const WHATSAPP_NUMBER = '8801853314954';
 
@@ -29,6 +35,25 @@ export default function Startshopping({
   onToggleTheme,
 }) {
   const [activeTab, setActiveTab] = useState('cart');
+  const [orderHistory, setOrderHistory] = useState([]);
+  const [ratingDrafts, setRatingDrafts] = useState({});
+
+  const loadOrderHistory = () => {
+    const allOrders = listOrders();
+
+    if (authSession?.email) {
+      const scoped = allOrders.filter((order) => String(order.customerEmail || '').toLowerCase() === String(authSession.email || '').toLowerCase());
+      setOrderHistory(scoped);
+      return;
+    }
+
+    const guestOnly = allOrders.filter((order) => !order.customerEmail);
+    setOrderHistory(guestOnly);
+  };
+
+  useEffect(() => {
+    loadOrderHistory();
+  }, [authSession]);
 
   const cartTotal = useMemo(
     () => cartItems.reduce((sum, item) => sum + parsePrice(item.price) * item.quantity, 0),
@@ -50,11 +75,12 @@ export default function Startshopping({
   .filter(Boolean) // Removes false, null, undefined, or empty strings
   .join('\n');
 
-  const orderAllMessage = () => {
+  const orderAllMessage = (orderId = '') => {
     const header = [
       'Hello Bella,',
       '',
       'I would like to confirm all items from my saved cart:',
+      orderId ? `Order ID: ${orderId}` : '',
       '',
     ];
 
@@ -75,6 +101,33 @@ export default function Startshopping({
     const footer = `\nEstimated subtotal: $${cartTotal}`;
 
     return [...header, formattedItems.join('\n\n'), footer].join('\n');
+  };
+
+  const createWhatsAppOrder = () => {
+    if (cartItems.length === 0) return;
+
+    const createdOrder = createOrderFromCart({
+      cartItems,
+      authSession,
+      subtotal: cartTotal,
+    });
+
+    loadOrderHistory();
+    openWhatsApp(orderAllMessage(createdOrder.id));
+  };
+
+  const orderStatusLabel = (status) => {
+    return ORDER_STATUSES.find((item) => item.value === status)?.label || status;
+  };
+
+  const submitRating = (orderId, cartId) => {
+    const key = `${orderId}__${cartId}`;
+    const rating = ratingDrafts[key];
+    const ok = rateDeliveredOrderItem(orderId, cartId, rating);
+    if (!ok) return;
+
+    setRatingDrafts((prev) => ({ ...prev, [key]: '' }));
+    loadOrderHistory();
   };
 
   return (
@@ -175,10 +228,59 @@ export default function Startshopping({
 
                 <div className="saved-items-footer">
                   <strong>Estimated subtotal: ${cartTotal}</strong>
-                  <button type="button" className="primary-button" onClick={() => openWhatsApp(orderAllMessage())}>
+                  <button type="button" className="primary-button" onClick={createWhatsAppOrder}>
                     Confirm all on WhatsApp
                   </button>
                 </div>
+
+                {orderHistory.length > 0 && (
+                  <div className="saved-orders-history" aria-label="Order history">
+                    <h3>Your recent orders</h3>
+                    {orderHistory.map((order) => (
+                      <article key={order.id} className="saved-order-card">
+                        <div className="saved-order-head">
+                          <strong>{order.id}</strong>
+                          <span>{orderStatusLabel(order.status)}</span>
+                        </div>
+                        {order.statusNote && <p className="saved-order-note">{order.statusNote}</p>}
+
+                        <div className="saved-order-items">
+                          {(order.items || []).map((item) => {
+                            const ratingKey = `${order.id}__${item.cartId}`;
+                            return (
+                              <div key={ratingKey} className="saved-order-item-line">
+                                <span>{item.name} x {item.quantity}</span>
+                                {order.status === 'delivered' && item.userRating === null && (
+                                  <div className="saved-order-rate">
+                                    <select
+                                      value={ratingDrafts[ratingKey] || ''}
+                                      onChange={(event) => setRatingDrafts((prev) => ({
+                                        ...prev,
+                                        [ratingKey]: event.target.value,
+                                      }))}
+                                    >
+                                      <option value="">Rate</option>
+                                      <option value="5">5</option>
+                                      <option value="4">4</option>
+                                      <option value="3">3</option>
+                                      <option value="2">2</option>
+                                      <option value="1">1</option>
+                                    </select>
+                                    <button type="button" onClick={() => submitRating(order.id, item.cartId)}>
+                                      Submit
+                                    </button>
+                                  </div>
+                                )}
+
+                                {item.userRating !== null && <small>Rated {item.userRating}/5</small>}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                )}
               </>
             )}
           </section>
