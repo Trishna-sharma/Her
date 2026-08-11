@@ -88,11 +88,15 @@ export default function Startshopping({
   .join('\n');
 
   const createSingleItemOrder = (item) => {
-    createOrderFromItems({
-      items: [item],
-      authSession,
-      subtotal: parsePrice(item.price) * item.quantity,
-    });
+    try {
+      createOrderFromItems({
+        items: [item],
+        authSession,
+        subtotal: parsePrice(item.price) * item.quantity,
+      });
+    } catch (error) {
+      console.error('Error creating single item order:', error);
+    }
   };
 
   const orderAllMessage = (orderId = '') => {
@@ -124,16 +128,24 @@ export default function Startshopping({
   };
 
   const createWhatsAppOrder = () => {
-    if (cartItems.length === 0) return;
+    if (cartItems.length === 0) {
+      alert('Your cart is empty. Add items before confirming.');
+      return;
+    }
 
-    const createdOrder = createOrderFromCart({
-      cartItems,
-      authSession,
-      subtotal: cartTotal,
-    });
+    try {
+      const createdOrder = createOrderFromCart({
+        cartItems,
+        authSession,
+        subtotal: cartTotal,
+      });
 
-    loadOrderHistory();
-    openWhatsApp(orderAllMessage(createdOrder.id));
+      loadOrderHistory();
+      openWhatsApp(orderAllMessage(createdOrder.id));
+    } catch (error) {
+      console.error('Error creating WhatsApp order:', error);
+      alert('There was an error. Please try again.');
+    }
   };
 
   const orderStatusLabel = (status) => {

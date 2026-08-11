@@ -72,8 +72,10 @@ export default function CategoryPage({
 
   const scroll = (direction) => {
     if (scrollRef.current) {
-      scrollRef.current.scrollBy({
-        left: direction === 'left' ? -320 : 320,
+      const element = scrollRef.current;
+      const scrollAmount = Math.max(element.clientWidth * 0.8, 320);
+      element.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
         behavior: 'smooth',
       });
     }

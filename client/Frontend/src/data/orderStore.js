@@ -75,7 +75,7 @@ export function createOrderFromItems({ items = [], authSession = null, subtotal 
 
   const order = {
     id,
-    createdAt: now.toISOString(),
+    createdAt: new Date().toISOString(),
     customerName,
     customerEmail,
     status: 'pending',
