@@ -4,6 +4,7 @@ import AuthStatusButton from './AuthStatusButton.jsx';
 import {
   ORDER_STATUSES,
   createOrderFromCart,
+  createOrderFromItems,
   listOrders,
   rateDeliveredOrderItem,
 } from '../data/orderStore.js';
@@ -13,6 +14,17 @@ const WHATSAPP_NUMBER = '8801853314954';
 function openWhatsApp(message) {
   const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
   window.open(url, '_blank', 'noopener,noreferrer');
+}
+
+function WhatsAppIcon() {
+  return (
+    <svg viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+      <path
+        fill="currentColor"
+        d="M16 3C9.4 3 4 8.4 4 15c0 2.4.7 4.7 2.1 6.7L4 29l7.5-2c1.4.7 2.9 1 4.5 1 6.6 0 12-5.4 12-12S22.6 3 16 3Zm0 22.8c-1.4 0-2.8-.4-4.1-1.1l-.5-.3-4.4 1.2 1.2-4.3-.3-.5a9.6 9.6 0 0 1-1.4-5c0-5.3 4.3-9.6 9.6-9.6s9.6 4.3 9.6 9.6-4.3 9.6-9.6 9.6Zm5.3-7.2c-.3-.2-1.9-.9-2.2-1s-.5-.2-.7.2-.8 1-1 1.2-.4.2-.8 0c-2.1-1.1-3.4-2.9-3.6-3.3-.2-.4 0-.6.2-.8l.5-.6c.2-.2.2-.4.3-.6s0-.4 0-.6c0-.2-.7-1.7-1-2.4-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.6 0-.9.4-.3.3-1.1 1.1-1.1 2.7s1.1 3.2 1.3 3.4c.2.2 2.2 3.4 5.3 4.7.7.3 1.3.5 1.8.6.8.2 1.5.1 2 .1.6-.1 1.9-.8 2.1-1.7.3-.9.3-1.6.2-1.7-.2-.2-.4-.3-.7-.5Z"
+      />
+    </svg>
+  );
 }
 
 function parsePrice(value) {
@@ -74,6 +86,14 @@ export default function Startshopping({
   ]
   .filter(Boolean) // Removes false, null, undefined, or empty strings
   .join('\n');
+
+  const createSingleItemOrder = (item) => {
+    createOrderFromItems({
+      items: [item],
+      authSession,
+      subtotal: parsePrice(item.price) * item.quantity,
+    });
+  };
 
   const orderAllMessage = (orderId = '') => {
     const header = [
@@ -207,10 +227,15 @@ export default function Startshopping({
 
                           <button
                             type="button"
-                            className="secondary-button"
-                            onClick={() => openWhatsApp(orderSingleMessage(item))}
+                            className="product-whatsapp-button"
+                            onClick={() => {
+                              createSingleItemOrder(item);
+                              loadOrderHistory();
+                              openWhatsApp(orderSingleMessage(item));
+                            }}
+                            aria-label="Order on WhatsApp"
                           >
-                            Order on WhatsApp
+                            <WhatsAppIcon />
                           </button>
 
                           <button

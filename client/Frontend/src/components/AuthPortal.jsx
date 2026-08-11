@@ -15,7 +15,7 @@ import {
   unmarkCatalogueItemDeleted,
   upsertCatalogueItemOverride,
 } from '../data/catalogAdminStore.js';
-import { ORDER_STATUSES, listOrders, updateOrderStatus } from '../data/orderStore.js';
+import { listOrders, updateOrderStatus } from '../data/orderStore.js';
 
 const ADMIN_USERS_KEY = 'herby-admin-users';
 
@@ -1373,18 +1373,6 @@ export default function AuthPortal({
                 </div>
 
                 <div className="auth-catalog-grid">
-                  <label className="auth-field">
-                    <span>Status</span>
-                    <select
-                      value={order.status}
-                      onChange={(event) => handleOrderStatusChange(order.id, event.target.value)}
-                    >
-                      {ORDER_STATUSES.map((status) => (
-                        <option key={status.value} value={status.value}>{status.label}</option>
-                      ))}
-                    </select>
-                  </label>
-
                   <label className="auth-field auth-field-full">
                     <span>Status note (optional)</span>
                     <input
@@ -1397,6 +1385,21 @@ export default function AuthPortal({
                       }))}
                     />
                   </label>
+                </div>
+
+                <div className="auth-order-actions">
+                  <button type="button" className="secondary-button" onClick={() => handleOrderStatusChange(order.id, 'confirmed')}>
+                    Confirm order
+                  </button>
+                  <button type="button" className="secondary-button" onClick={() => handleOrderStatusChange(order.id, 'packing')}>
+                    Packing
+                  </button>
+                  <button type="button" className="secondary-button" onClick={() => handleOrderStatusChange(order.id, 'delivery_2d')}>
+                    Delivery in 2 days
+                  </button>
+                  <button type="button" className="secondary-button" onClick={() => handleOrderStatusChange(order.id, 'delivered')}>
+                    Mark delivered
+                  </button>
                 </div>
 
                 <div className="auth-order-items">

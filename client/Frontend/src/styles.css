@@ -680,6 +680,7 @@ button {
   scrollbar-width: none;
   scroll-behavior: smooth;
   padding-bottom: 0.25rem;
+  scroll-snap-type: x proximity;
 }
 
 .new-arrivals-track::-webkit-scrollbar {
@@ -695,6 +696,7 @@ button {
   display: flex;
   flex-direction: column;
   gap: 0.7rem;
+  scroll-snap-align: start;
 }
 
 .new-arrival-image-btn {
@@ -781,6 +783,11 @@ button {
   font-weight: 700;
   cursor: pointer;
   flex: 0 0 48px;
+}
+
+.whatsapp-icon-button svg {
+  width: 22px;
+  height: 22px;
 }
 
 .whatsapp-icon-button:hover {
@@ -2128,6 +2135,18 @@ button {
   font-size: 0.84rem;
 }
 
+.auth-order-actions {
+  margin-top: 0.7rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.auth-order-actions .secondary-button {
+  padding: 0.68rem 0.92rem;
+  font-size: 0.84rem;
+}
+
 .saved-order-card {
   border: 1px solid rgba(112, 83, 173, 0.14);
   border-radius: 16px;
@@ -3347,9 +3366,9 @@ button {
 }
 
 .wishlist-btn.large {
-  min-width: 124px;
+  min-width: 106px;
   border-radius: 999px;
-  padding: 0.85rem 1.1rem;
+  padding: 0.82rem 0.9rem;
 }
 
 .category-catalogue-rows {
@@ -3624,22 +3643,33 @@ button {
 }
 
 .product-modal-actions .primary-button {
-  flex: 1;
+  flex: 1 1 220px;
   padding: 0.92rem 1rem;
 }
 
 .product-whatsapp-button {
+  width: 52px;
+  height: 52px;
   border: 1.5px solid #23a55c;
   background: rgba(37, 211, 102, 0.08);
   color: #1c8c4d;
-  border-radius: 999px;
-  padding: 0.9rem 1rem;
+  border-radius: 50%;
+  padding: 0;
   font-weight: 700;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 52px;
 }
 
 .product-whatsapp-button:hover {
   background: rgba(37, 211, 102, 0.16);
+}
+
+.product-whatsapp-button svg {
+  width: 23px;
+  height: 23px;
 }
 
 .product-modal-actions .primary-button:disabled {

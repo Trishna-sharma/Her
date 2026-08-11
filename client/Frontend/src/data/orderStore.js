@@ -3,6 +3,7 @@ const PRODUCT_RATINGS_KEY = 'herby-product-ratings';
 
 export const ORDER_STATUSES = [
   { value: 'pending', label: 'Pending confirmation' },
+  { value: 'confirmed', label: 'Confirmed' },
   { value: 'packing', label: 'Packing' },
   { value: 'delivery_2d', label: 'Out for delivery (2 days)' },
   { value: 'delivered', label: 'Successfully delivered' },
@@ -40,13 +41,13 @@ export function writeOrders(nextOrders) {
   writeJson(ORDERS_KEY, nextOrders);
 }
 
-export function createOrderFromCart({ cartItems = [], authSession = null, subtotal = 0 }) {
+function createOrderId() {
   const now = new Date();
-  const id = `HBM-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
-  const customerName = authSession?.name || authSession?.email || 'Guest customer';
-  const customerEmail = authSession?.email || '';
+  return `HBM-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+}
 
-  const items = cartItems.map((item) => ({
+function buildOrderItems(orderItems = []) {
+  return orderItems.map((item) => ({
     itemId: item.itemId,
     cartId: item.cartId,
     name: item.name,
@@ -65,6 +66,12 @@ export function createOrderFromCart({ cartItems = [], authSession = null, subtot
     }),
     userRating: null,
   }));
+}
+
+export function createOrderFromItems({ items = [], authSession = null, subtotal = 0 }) {
+  const id = createOrderId();
+  const customerName = authSession?.name || authSession?.email || 'Guest customer';
+  const customerEmail = authSession?.email || '';
 
   const order = {
     id,
@@ -80,6 +87,10 @@ export function createOrderFromCart({ cartItems = [], authSession = null, subtot
   const existing = listOrders();
   writeOrders([order, ...existing]);
   return order;
+}
+
+export function createOrderFromCart({ cartItems = [], authSession = null, subtotal = 0 }) {
+  return createOrderFromItems({ items: cartItems, authSession, subtotal });
 }
 
 export function updateOrderStatus(orderId, nextStatus, statusNote = '') {
