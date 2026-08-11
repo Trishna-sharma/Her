@@ -7,6 +7,7 @@ import {
   createOrderFromItems,
   listOrders,
   rateDeliveredOrderItem,
+  removeOrder,
 } from '../data/orderStore.js';
 
 const WHATSAPP_NUMBER = '8801853314954';
@@ -54,7 +55,9 @@ export default function Startshopping({
     const allOrders = listOrders();
 
     if (authSession?.email) {
-      const scoped = allOrders.filter((order) => String(order.customerEmail || '').toLowerCase() === String(authSession.email || '').toLowerCase());
+      const scoped = allOrders.filter(
+        (order) => String(order.customerEmail || '').toLowerCase() === String(authSession.email || '').toLowerCase()
+      );
       setOrderHistory(scoped);
       return;
     }
@@ -72,20 +75,21 @@ export default function Startshopping({
     [cartItems]
   );
 
-  const orderSingleMessage = (item) => [
-    'Hello Bella,',
-    '',
-    'I would like to confirm this order:',
-    `Item: ${item.name}`,
-    item.category && `Category: ${item.category}`,
-    item.section && `Section: ${item.section}`,
-    item.color && `Color: ${item.color}`,
-    item.size && `Size: ${item.size}`,
-    `Quantity: ${item.quantity}`,
-    `Price: ${item.price}`,
-  ]
-  .filter(Boolean) // Removes false, null, undefined, or empty strings
-  .join('\n');
+  const orderSingleMessage = (item) =>
+    [
+      'Hello Bella,',
+      '',
+      'I would like to confirm this order:',
+      `Item: ${item.name}`,
+      item.category && `Category: ${item.category}`,
+      item.section && `Section: ${item.section}`,
+      item.color && `Color: ${item.color}`,
+      item.size && `Size: ${item.size}`,
+      `Quantity: ${item.quantity}`,
+      `Price: ${item.price}`,
+    ]
+      .filter(Boolean)
+      .join('\n');
 
   const createSingleItemOrder = (item) => {
     try {
@@ -118,8 +122,8 @@ export default function Startshopping({
         `   Quantity: ${item.quantity}`,
         `   Price: ${item.price}`,
       ]
-      .filter(Boolean)
-      .join('\n');
+        .filter(Boolean)
+        .join('\n');
     });
 
     const footer = `\nEstimated subtotal: $${cartTotal}`;
@@ -160,6 +164,13 @@ export default function Startshopping({
 
     setRatingDrafts((prev) => ({ ...prev, [key]: '' }));
     loadOrderHistory();
+  };
+
+  const handleRemoveOrder = (orderId) => {
+    if (window.confirm('Are you sure you want to remove this order from history?')) {
+      removeOrder(orderId);
+      loadOrderHistory();
+    }
   };
 
   return (
@@ -273,29 +284,53 @@ export default function Startshopping({
                 {orderHistory.length > 0 && (
                   <div className="saved-orders-history" aria-label="Order history">
                     <h3>Your recent orders</h3>
-                    <p className="saved-orders-caption">Your order status updates here after admin confirms packing, delivery, or completion.</p>
+                    <p className="saved-orders-caption">
+                      Your order status updates here after admin confirms packing, delivery, or completion.
+                    </p>
                     {orderHistory.map((order) => (
                       <article key={order.id} className="saved-order-card">
                         <div className="saved-order-head">
                           <strong>{order.id}</strong>
-                          <span>{orderStatusLabel(order.status)}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span className="order-status-tag">{orderStatusLabel(order.status)}</span>
+                            <button
+                              type="button"
+                              className="startshopping-remove"
+                              style={{ fontSize: '12px', padding: '2px 6px' }}
+                              onClick={() => handleRemoveOrder(order.id)}
+                            >
+                              Archive
+                            </button>
+                          </div>
                         </div>
-                        {order.statusNote && <p className="saved-order-note">{order.statusNote}</p>}
+
+                        {order.statusNote && (
+                          <p
+                            className="saved-order-note"
+                            style={{ color: '#10B981', fontWeight: 'bold', margin: '6px 0' }}
+                          >
+                            {order.statusNote}
+                          </p>
+                        )}
 
                         <div className="saved-order-items">
                           {(order.items || []).map((item) => {
                             const ratingKey = `${order.id}__${item.cartId}`;
                             return (
                               <div key={ratingKey} className="saved-order-item-line">
-                                <span>{item.name} x {item.quantity}</span>
+                                <span>
+                                  {item.name} x {item.quantity}
+                                </span>
                                 {order.status === 'delivered' && item.userRating === null && (
                                   <div className="saved-order-rate">
                                     <select
                                       value={ratingDrafts[ratingKey] || ''}
-                                      onChange={(event) => setRatingDrafts((prev) => ({
-                                        ...prev,
-                                        [ratingKey]: event.target.value,
-                                      }))}
+                                      onChange={(event) =>
+                                        setRatingDrafts((prev) => ({
+                                          ...prev,
+                                          [ratingKey]: event.target.value,
+                                        }))
+                                      }
                                     >
                                       <option value="">Rate</option>
                                       <option value="5">5</option>
@@ -342,7 +377,9 @@ export default function Startshopping({
 
                     <div className="saved-item-body">
                       <h2>{item.name}</h2>
-                      <p className="saved-item-meta">{item.category} / {item.section}</p>
+                      <p className="saved-item-meta">
+                        {item.category} / {item.section}
+                      </p>
                       <p className="saved-item-price">{item.price}</p>
 
                       <div className="saved-item-actions">
