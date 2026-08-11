@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef, useState } from 'react';
+﻿import React, { useEffect, useRef, useState } from 'react';
 import WelcomeScreen from './components/WelcomeScreen.jsx';
 import CategoryPage from './components/CategoryPage.jsx';
 import Gallery from './components/Gallery.jsx';
@@ -6,7 +6,6 @@ import CategoryDetail from './components/CategoryDetail.jsx';
 import ContactPage from './components/Contact.jsx';
 import Startshopping from './components/startshopping.jsx';
 import AuthPortal from './components/AuthPortal.jsx';
-import React from 'react';
 
 const AUTH_SESSION_KEY = 'herby-auth-session';
 const THEME_KEY = 'herby-theme';
@@ -17,7 +16,7 @@ const categories = [
   'Makeup',
   'Shoes',
   'Bags',
-  'Skin Care'
+  'Skin Care',
 ];
 
 export default function App() {
@@ -57,7 +56,7 @@ export default function App() {
       if (storedWishlist) setWishlistItems(JSON.parse(storedWishlist));
       if (storedAuthSession) setAuthSession(JSON.parse(storedAuthSession));
     } catch {
-      // Ignore storage parse issues and continue with empty state.
+      // Ignore storage parse issues and continue with default state.
     }
   }, []);
 
@@ -126,11 +125,13 @@ export default function App() {
   };
 
   const updateCartItemQuantity = (cartId, nextQuantity) => {
-    setCartItems((previous) => previous.map((item) => (
-      item.cartId === cartId
-        ? { ...item, quantity: Math.max(1, nextQuantity) }
-        : item
-    )));
+    setCartItems((previous) =>
+      previous.map((item) =>
+        item.cartId === cartId
+          ? { ...item, quantity: Math.max(1, nextQuantity) }
+          : item
+      )
+    );
   };
 
   const removeCartItem = (cartId) => {
@@ -209,6 +210,7 @@ export default function App() {
 
     navTo(target.page);
   };
+
   const handleAuthChange = (nextSession) => setAuthSession(nextSession);
 
   if (page === 'welcome') {
@@ -322,4 +324,6 @@ export default function App() {
       />
     );
   }
+
+  return null;
 }

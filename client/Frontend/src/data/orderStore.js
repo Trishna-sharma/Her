@@ -1,4 +1,5 @@
 const ORDERS_KEY = 'herby-order-requests';
+const ARCHIVED_ORDERS_KEY = 'herby-archived-orders';
 const PRODUCT_RATINGS_KEY = 'herby-product-ratings';
 
 export const ORDER_STATUSES = [
@@ -41,12 +42,17 @@ export function writeOrders(nextOrders) {
   writeJson(ORDERS_KEY, nextOrders);
 }
 
+export function listArchivedOrders() {
+  const parsed = readJson(ARCHIVED_ORDERS_KEY, []);
+  return Array.isArray(parsed) ? parsed : [];
+}
+
 function createOrderId() {
   const now = new Date();
   return `HBM-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
 }
 
-function buildOrderItems(orderItems = []) {
+export function buildOrderItems(orderItems = []) {
   return orderItems.map((item) => ({
     itemId: item.itemId,
     cartId: item.cartId,
@@ -107,6 +113,23 @@ export function updateOrderStatus(orderId, nextStatus, statusNote = '') {
   ));
 
   writeOrders(updated);
+}
+
+export function removeOrder(orderId) {
+  const existing = listOrders();
+  const target = existing.find((o) => o.id === orderId);
+  if (!target) return;
+
+  const remaining = existing.filter((o) => o.id !== orderId);
+  writeOrders(remaining);
+
+  const archived = listArchivedOrders();
+  const docLogEntry = {
+    ...target,
+    archivedAt: new Date().toISOString(),
+    archiveReason: 'Order removed/archived by Admin',
+  };
+  writeJson(ARCHIVED_ORDERS_KEY, [docLogEntry, ...archived]);
 }
 
 function getRatingsMap() {

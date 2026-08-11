@@ -57,7 +57,7 @@ function WhatsAppIcon() {
 }
 
 export default function CategoryPage({
-  categories,
+  categories = [],
   onBack,
   onNavigate,
   onAddCartItem = () => {},
@@ -73,7 +73,7 @@ export default function CategoryPage({
   const scroll = (direction) => {
     if (scrollRef.current) {
       const element = scrollRef.current;
-      const scrollAmount = Math.max(element.clientWidth * 0.8, 320);
+      const scrollAmount = Math.max(element.clientWidth * 0.7, 280);
       element.scrollBy({
         left: direction === 'left' ? -scrollAmount : scrollAmount,
         behavior: 'smooth',
@@ -113,7 +113,11 @@ export default function CategoryPage({
       quantity: 1,
     };
 
-    createOrderFromItems({ items: [cartPayload], authSession, subtotal: Number.parseInt(String(item.price).replace(/[^0-9]/g, ''), 10) || 0 });
+    createOrderFromItems({
+      items: [cartPayload],
+      authSession,
+      subtotal: Number.parseInt(String(item.price).replace(/[^0-9]/g, ''), 10) || 0,
+    });
     openWhatsApp(arrivalOrderMessage(item));
   };
 
