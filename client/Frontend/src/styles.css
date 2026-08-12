@@ -783,6 +783,8 @@ button {
   font-weight: 700;
   cursor: pointer;
   flex: 0 0 48px;
+  flex-shrink: 0;
+  aspect-ratio: 1 / 1;
 }
 
 .whatsapp-icon-button svg {
@@ -1679,51 +1681,17 @@ button {
   .top-nav,
   .page-top-nav {
     width: 100%;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 0.8rem 0.9rem;
-  }
-
-  .top-nav > .logo,
-  .page-top-nav > .logo {
-    flex: 0 0 100%;
-    display: flex;
-    justify-content: center;
-  }
-
-  .top-nav .nav-shell,
-  .page-top-nav .nav-shell {
-    flex: 0 0 100%;
-    width: 100%;
-    justify-content: center;
-  }
-
-  .top-nav .auth-status-wrap,
-  .page-top-nav .auth-status-wrap {
-    flex: 0 0 100%;
-    width: 100%;
-    display: flex;
-    justify-content: center;
-  }
-
-  .logo {
-    font-size: 2rem;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+    gap: 0.6rem;
   }
 
   .logo img {
-    height: 72px;
+    height: 56px;
   }
 
   .page-links {
-    position: fixed;
-    top: 96px;
-    left: 50%;
-    right: auto;
-    transform: translateX(-50%);
-    width: min(360px, calc(100vw - 20px));
-    max-height: calc(100vh - 116px);
-    overflow-y: auto;
-    z-index: 30;
+    top: 76px;
   }
 
   .nav-toggle {
@@ -1738,8 +1706,8 @@ button {
   }
 
   .profile-button {
-    max-width: 170px;
-    font-size: 0.75rem;
+    max-width: 140px;
+    font-size: 0.72rem;
   }
 }
 
@@ -2160,6 +2128,7 @@ button {
   justify-content: space-between;
   gap: 0.75rem;
   flex-wrap: wrap;
+  align-items: center;
 }
 
 .saved-order-head span {
@@ -2172,6 +2141,23 @@ button {
   margin: 0.35rem 0 0.5rem;
   color: #4d3d69;
   font-size: 0.85rem;
+}
+
+.saved-order-note-highlight {
+  color: #059669;
+  font-weight: 700;
+}
+
+.order-status-tag {
+  display: inline-block;
+  font-weight: 700;
+  color: #059669;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  border-radius: 999px;
+  padding: 0.28rem 0.7rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
 }
 
 .saved-order-items {
@@ -3661,6 +3647,8 @@ button {
   align-items: center;
   justify-content: center;
   flex: 0 0 52px;
+  flex-shrink: 0;
+  aspect-ratio: 1 / 1;
 }
 
 .product-whatsapp-button:hover {
@@ -4180,6 +4168,16 @@ body[data-theme='dark'] .auth-order-items p {
   color: #e4dbd4;
 }
 
+body[data-theme='dark'] .order-status-tag {
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.16);
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+body[data-theme='dark'] .saved-order-note-highlight {
+  color: #34d399;
+}
+
 body[data-theme='dark'] .hero-image-placeholder,
 body[data-theme='dark'] .arrival-slide,
 body[data-theme='dark'] .saved-item-image,
@@ -4411,78 +4409,6 @@ body[data-theme='dark'] .auth-gallery-thumb button {
   border: 1px solid rgba(255, 255, 255, 0.09);
 }
 
-/* ADD THESE RULES TO YOUR styles.css — do not replace the whole file */
-
-/* Fixes invisible "Role:", "Name:" etc. labels in dark mode profile card */
-body[data-theme='dark'] .auth-profile-card p strong {
-  color: #fff7f2;
-}
-
-/* Stock status line in product modal */
-.product-modal-stock {
-  margin: 0;
-  font-weight: 700;
-  font-size: 0.9rem;
-  color: #2e7b53;
-}
-
-.product-modal-stock.out {
-  color: #a93366;
-}
-
-body[data-theme='dark'] .product-modal-stock {
-  color: #9ce7bf;
-}
-
-body[data-theme='dark'] .product-modal-stock.out {
-  color: #ff9db8;
-}
-
-/* Gallery thumbnail preview grid in admin forms */
-.auth-gallery-preview {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
-  margin-top: 0.4rem;
-}
-
-.auth-gallery-thumb {
-  width: 84px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.3rem;
-}
-
-.auth-gallery-thumb img {
-  width: 84px;
-  height: 84px;
-  object-fit: cover;
-  border-radius: 10px;
-  border: 1px solid rgba(113, 84, 176, 0.25);
-}
-
-.auth-gallery-thumb button {
-  border: none;
-  background: rgba(255, 240, 245, 0.9);
-  color: #a93366;
-  font-size: 0.68rem;
-  font-weight: 700;
-  border-radius: 999px;
-  padding: 0.2rem 0.5rem;
-  cursor: pointer;
-}
-
-body[data-theme='dark'] .auth-gallery-thumb img {
-  border-color: rgba(255, 255, 255, 0.1);
-}
-
-body[data-theme='dark'] .auth-gallery-thumb button {
-  background: rgba(28, 28, 32, 0.96);
-  color: #ff9db8;
-  border: 1px solid rgba(255, 255, 255, 0.09);
-}
-
 /* Price amount + currency dropdown, side by side */
 .auth-price-row {
   display: flex;
@@ -4499,3 +4425,15 @@ body[data-theme='dark'] .auth-gallery-thumb button {
   width: 130px;
 }
 
+/* Auth toast error tone, used when order actions fail */
+.auth-toast.error {
+  background: #fff0f0;
+  color: #9e2f2f;
+  border: 1px solid #e69a9a;
+}
+
+body[data-theme='dark'] .auth-toast.error {
+  background: rgba(58, 23, 23, 0.94);
+  color: #ffd9d9;
+  border-color: rgba(230, 120, 120, 0.4);
+}

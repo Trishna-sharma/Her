@@ -38,6 +38,16 @@ export function listOrders() {
   return Array.isArray(parsed) ? parsed : [];
 }
 
+// Returns active, non-archived orders (filtered by customer email if provided)
+export function getCustomerOrders(authEmail = '') {
+  const allOrders = listOrders();
+  return allOrders.filter((order) => {
+    const isArchived = order.status === 'archived';
+    const belongsToUser = !authEmail || normalizeText(order.customerEmail) === normalizeText(authEmail);
+    return !isArchived && belongsToUser;
+  });
+}
+
 export function writeOrders(nextOrders) {
   writeJson(ORDERS_KEY, nextOrders);
 }
@@ -100,6 +110,12 @@ export function createOrderFromCart({ cartItems = [], authSession = null, subtot
 }
 
 export function updateOrderStatus(orderId, nextStatus, statusNote = '') {
+  // If set to archived, route directly through removeOrder to shift to ARCHIVED_ORDERS_KEY
+  if (nextStatus === 'archived') {
+    removeOrder(orderId);
+    return;
+  }
+
   const existing = listOrders();
   const updated = existing.map((order) => (
     order.id === orderId
