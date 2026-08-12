@@ -3261,6 +3261,7 @@ button {
   scroll-behavior: smooth;
   padding-bottom: 0.35rem;
   scrollbar-width: none;
+  flex-wrap: nowrap;
 }
 
 .category-card-grid::-webkit-scrollbar {
@@ -3268,8 +3269,7 @@ button {
 }
 
 .category-card-grid .category-card {
-  flex: 0 0 calc((100% - 3.2rem) / 3);
-  min-width: 260px;
+  flex: 0 0 clamp(260px, 32vw, 420px);
 }
 
 .category-card {
@@ -3549,7 +3549,13 @@ button {
 .product-modal-description {
   margin: 0.15rem 0 0;
   color: #4f3d6f;
-  line-height: 1.7;
+  line-height: 1.8;
+  word-break: break-word;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  max-height: 180px;
+  overflow-y: auto;
+  padding-right: 0.5rem;
 }
 
 .product-modal-block {

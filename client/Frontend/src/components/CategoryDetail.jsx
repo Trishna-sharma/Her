@@ -100,8 +100,11 @@ export default function CategoryDetail({
       return;
     }
 
-    setActiveSection(sectionNames[0] || '');
-  }, [category, selectedSection, sections]);
+    // Only reset if current activeSection no longer exists
+    if (!sections[activeSection]) {
+      setActiveSection(sectionNames[0] || '');
+    }
+  }, [category, selectedSection, sections, activeSection]);
 
   const baseRows = useMemo(
     () => getCatalogueRowsForSection(category, activeSection),
@@ -191,6 +194,7 @@ export default function CategoryDetail({
       setSelectedProduct(null);
     }
 
+    // Refresh catalogue but preserve active section
     setCatalogueVersion((value) => value + 1);
   };
 
