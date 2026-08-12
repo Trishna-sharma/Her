@@ -5,9 +5,8 @@ import {
   ORDER_STATUSES,
   createOrderFromCart,
   createOrderFromItems,
-  listOrders,
+  getCustomerOrders,
   rateDeliveredOrderItem,
-  removeOrder,
 } from '../data/orderStore.js';
 
 const WHATSAPP_NUMBER = '8801853314954';
@@ -49,26 +48,32 @@ export default function Startshopping({
 }) {
   const [activeTab, setActiveTab] = useState('cart');
   const [orderHistory, setOrderHistory] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
   const [ratingDrafts, setRatingDrafts] = useState({});
 
-  const loadOrderHistory = () => {
-    const allOrders = listOrders();
-
-    if (authSession?.email) {
-      const scoped = allOrders.filter(
-        (order) => String(order.customerEmail || '').toLowerCase() === String(authSession.email || '').toLowerCase()
-      );
-      setOrderHistory(scoped);
+  // Order history now comes from the backend and is scoped to the logged-in
+  // customer server-side (via their token) — there's no more client-side
+  // "guest orders" fallback, since a guest has no account to look history up
+  // against on a different device/session anyway.
+  const loadOrderHistory = async () => {
+    if (!authSession?.token) {
+      setOrderHistory([]);
       return;
     }
 
-    const guestOnly = allOrders.filter((order) => !order.customerEmail);
-    setOrderHistory(guestOnly);
+    setOrdersLoading(true);
+    try {
+      const orders = await getCustomerOrders(authSession);
+      setOrderHistory(orders);
+    } finally {
+      setOrdersLoading(false);
+    }
   };
 
   useEffect(() => {
     loadOrderHistory();
-  }, [authSession]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authSession?.token]);
 
   const cartTotal = useMemo(
     () => cartItems.reduce((sum, item) => sum + parsePrice(item.price) * item.quantity, 0),
@@ -91,9 +96,9 @@ export default function Startshopping({
       .filter(Boolean)
       .join('\n');
 
-  const createSingleItemOrder = (item) => {
+  const createSingleItemOrder = async (item) => {
     try {
-      createOrderFromItems({
+      await createOrderFromItems({
         items: [item],
         authSession,
         subtotal: parsePrice(item.price) * item.quantity,
@@ -131,21 +136,21 @@ export default function Startshopping({
     return [...header, formattedItems.join('\n\n'), footer].join('\n');
   };
 
-  const createWhatsAppOrder = () => {
+  const createWhatsAppOrder = async () => {
     if (cartItems.length === 0) {
       alert('Your cart is empty. Add items before confirming.');
       return;
     }
 
     try {
-      const createdOrder = createOrderFromCart({
+      const createdOrder = await createOrderFromCart({
         cartItems,
         authSession,
         subtotal: cartTotal,
       });
 
-      loadOrderHistory();
-      openWhatsApp(orderAllMessage(createdOrder.id));
+      await loadOrderHistory();
+      openWhatsApp(orderAllMessage(createdOrder.orderCode));
     } catch (error) {
       console.error('Error creating WhatsApp order:', error);
       alert('There was an error. Please try again.');
@@ -156,21 +161,14 @@ export default function Startshopping({
     return ORDER_STATUSES.find((item) => item.value === status)?.label || status;
   };
 
-  const submitRating = (orderId, cartId) => {
-    const key = `${orderId}__${cartId}`;
+  const submitRating = async (orderCode, cartId) => {
+    const key = `${orderCode}__${cartId}`;
     const rating = ratingDrafts[key];
-    const ok = rateDeliveredOrderItem(orderId, cartId, rating);
+    const ok = await rateDeliveredOrderItem(orderCode, cartId, rating, authSession);
     if (!ok) return;
 
     setRatingDrafts((prev) => ({ ...prev, [key]: '' }));
     loadOrderHistory();
-  };
-
-  const handleRemoveOrder = (orderId) => {
-    if (window.confirm('Are you sure you want to remove this order from history?')) {
-      removeOrder(orderId);
-      loadOrderHistory();
-    }
   };
 
   return (
@@ -251,9 +249,9 @@ export default function Startshopping({
                           <button
                             type="button"
                             className="product-whatsapp-button"
-                            onClick={() => {
-                              createSingleItemOrder(item);
-                              loadOrderHistory();
+                            onClick={async () => {
+                              await createSingleItemOrder(item);
+                              await loadOrderHistory();
                               openWhatsApp(orderSingleMessage(item));
                             }}
                             aria-label="Order on WhatsApp"
@@ -281,41 +279,39 @@ export default function Startshopping({
                   </button>
                 </div>
 
-                {orderHistory.length > 0 && (
+                {!authSession?.token ? (
+                  <div className="saved-orders-history" aria-label="Order history">
+                    <h3>Your recent orders</h3>
+                    <p className="saved-orders-caption">
+                      Log in to see your order status updates here after admin confirms packing, delivery, or completion.
+                    </p>
+                  </div>
+                ) : ordersLoading && orderHistory.length === 0 ? (
+                  <div className="saved-orders-history" aria-label="Order history">
+                    <p className="saved-orders-caption">Loading your orders…</p>
+                  </div>
+                ) : orderHistory.length > 0 && (
                   <div className="saved-orders-history" aria-label="Order history">
                     <h3>Your recent orders</h3>
                     <p className="saved-orders-caption">
                       Your order status updates here after admin confirms packing, delivery, or completion.
                     </p>
                     {orderHistory.map((order) => (
-                      <article key={order.id} className="saved-order-card">
+                      <article key={order.orderCode} className="saved-order-card">
                         <div className="saved-order-head">
-                          <strong>{order.id}</strong>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span className="order-status-tag">{orderStatusLabel(order.status)}</span>
-                            <button
-                              type="button"
-                              className="startshopping-remove"
-                              style={{ fontSize: '12px', padding: '2px 6px' }}
-                              onClick={() => handleRemoveOrder(order.id)}
-                            >
-                              Archive
-                            </button>
-                          </div>
+                          <strong>{order.orderCode}</strong>
+                          <span className="order-status-tag">{orderStatusLabel(order.status)}</span>
                         </div>
 
                         {order.statusNote && (
-                          <p
-                            className="saved-order-note"
-                            style={{ color: '#10B981', fontWeight: 'bold', margin: '6px 0' }}
-                          >
+                          <p className="saved-order-note saved-order-note-highlight">
                             {order.statusNote}
                           </p>
                         )}
 
                         <div className="saved-order-items">
                           {(order.items || []).map((item) => {
-                            const ratingKey = `${order.id}__${item.cartId}`;
+                            const ratingKey = `${order.orderCode}__${item.cartId}`;
                             return (
                               <div key={ratingKey} className="saved-order-item-line">
                                 <span>
@@ -339,7 +335,7 @@ export default function Startshopping({
                                       <option value="2">2</option>
                                       <option value="1">1</option>
                                     </select>
-                                    <button type="button" onClick={() => submitRating(order.id, item.cartId)}>
+                                    <button type="button" onClick={() => submitRating(order.orderCode, item.cartId)}>
                                       Submit
                                     </button>
                                   </div>

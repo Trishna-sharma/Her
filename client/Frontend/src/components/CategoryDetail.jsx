@@ -8,7 +8,12 @@ import {
   getSectionsForCategory,
   markCatalogueItemDeleted,
 } from '../data/catalogAdminStore.js';
-import { buildProductKey, createOrderFromItems, getProductReviewStats } from '../data/orderStore.js';
+import {
+  buildProductKey,
+  createOrderFromItems,
+  fetchRatingsSummary,
+  getProductReviewStats,
+} from '../data/orderStore.js';
 
 const WHATSAPP_NUMBER = '8801853314954';
 
@@ -71,6 +76,16 @@ export default function CategoryDetail({
   const rowRefs = useRef({});
   const [catalogueVersion, setCatalogueVersion] = useState(0);
   const canManageCatalogue = authSession?.role === 'admin';
+
+  // Ratings now live on the backend (aggregated from real order data).
+  // Fetch once on mount so getProductReviewStats() has something to read;
+  // bumping catalogueVersion afterwards forces a re-render so ratings
+  // that arrive after the initial paint still show up.
+  useEffect(() => {
+    fetchRatingsSummary().then(() => {
+      setCatalogueVersion((value) => value + 1);
+    });
+  }, []);
 
   const sections = useMemo(() => {
     return getSectionsForCategory(category);
@@ -196,7 +211,7 @@ export default function CategoryDetail({
     ].join('\n')
   );
 
-  const sendModalWhatsAppOrder = () => {
+  const sendModalWhatsAppOrder = async () => {
     const payload = createItemPayload(
       selectedProduct,
       selectedProduct.rowTitle,
@@ -205,11 +220,15 @@ export default function CategoryDetail({
       quantity
     );
 
-    createOrderFromItems({
-      items: [payload],
-      authSession,
-      subtotal: Number.parseInt(String(selectedProduct.price).replace(/[^0-9]/g, ''), 10) * quantity || 0,
-    });
+    try {
+      await createOrderFromItems({
+        items: [payload],
+        authSession,
+        subtotal: Number.parseInt(String(selectedProduct.price).replace(/[^0-9]/g, ''), 10) * quantity || 0,
+      });
+    } catch (error) {
+      console.error('Failed to create order before WhatsApp handoff:', error);
+    }
     openWhatsApp(orderMessage(selectedProduct, selectedProduct.rowTitle));
   };
 

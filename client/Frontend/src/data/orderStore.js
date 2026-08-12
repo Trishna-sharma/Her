@@ -1,6 +1,4 @@
-const ORDERS_KEY = 'herby-order-requests';
-const ARCHIVED_ORDERS_KEY = 'herby-archived-orders';
-const PRODUCT_RATINGS_KEY = 'herby-product-ratings';
+import axios from 'axios';
 
 export const ORDER_STATUSES = [
   { value: 'pending', label: 'Pending confirmation' },
@@ -10,19 +8,14 @@ export const ORDER_STATUSES = [
   { value: 'delivered', label: 'Successfully delivered' },
 ];
 
-function readJson(key, fallback) {
-  try {
-    const raw = window.localStorage.getItem(key);
-    if (!raw) return fallback;
-    const parsed = JSON.parse(raw);
-    return parsed;
-  } catch {
-    return fallback;
-  }
+function getApiBase() {
+  const rawBase = import.meta.env.VITE_API_URL || 'https://her-by-mou-backend.vercel.app';
+  return rawBase.replace(/\/+$/, '');
 }
 
-function writeJson(key, value) {
-  window.localStorage.setItem(key, JSON.stringify(value));
+function authHeaders(authSession) {
+  const token = authSession?.token;
+  return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 function normalizeText(value) {
@@ -33,180 +26,113 @@ export function buildProductKey({ category, section, rowTitle, name }) {
   return [category, section, rowTitle, name].map(normalizeText).join('::');
 }
 
-export function listOrders() {
-  const parsed = readJson(ORDERS_KEY, []);
-  return Array.isArray(parsed) ? parsed : [];
-}
+// ---- Ratings summary cache -------------------------------------------------
+// getProductReviewStats() is called synchronously in a lot of render code
+// (CategoryDetail.jsx's buildProductDetails). To avoid rewriting every call
+// site to be async, we keep a small in-memory cache that's populated by
+// fetchRatingsSummary() and read synchronously afterwards. Call
+// fetchRatingsSummary() once near app start (e.g. in App.jsx's useEffect);
+// until it resolves, getProductReviewStats() just returns null, same as the
+// old "no rating yet" fallback already handled by every caller.
+let ratingsCache = {};
 
-// Returns active, non-archived orders (filtered by customer email if provided)
-export function getCustomerOrders(authEmail = '') {
-  const allOrders = listOrders();
-  return allOrders.filter((order) => {
-    const isArchived = order.status === 'archived';
-    const belongsToUser = !authEmail || normalizeText(order.customerEmail) === normalizeText(authEmail);
-    return !isArchived && belongsToUser;
-  });
-}
-
-export function writeOrders(nextOrders) {
-  writeJson(ORDERS_KEY, nextOrders);
-}
-
-export function listArchivedOrders() {
-  const parsed = readJson(ARCHIVED_ORDERS_KEY, []);
-  return Array.isArray(parsed) ? parsed : [];
-}
-
-function createOrderId() {
-  const now = new Date();
-  return `HBM-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
-}
-
-export function buildOrderItems(orderItems = []) {
-  return orderItems.map((item) => ({
-    itemId: item.itemId,
-    cartId: item.cartId,
-    name: item.name,
-    price: item.price,
-    quantity: item.quantity,
-    category: item.category,
-    section: item.section,
-    rowTitle: item.rowTitle || 'Everyday Edit',
-    color: item.color || 'Default',
-    size: item.size || 'Default',
-    productKey: buildProductKey({
-      category: item.category,
-      section: item.section,
-      rowTitle: item.rowTitle || 'Everyday Edit',
-      name: item.name,
-    }),
-    userRating: null,
-  }));
-}
-
-export function createOrderFromItems({ items = [], authSession = null, subtotal = 0 }) {
-  const id = createOrderId();
-  const customerName = authSession?.name || authSession?.email || 'Guest customer';
-  const customerEmail = authSession?.email || '';
-
-  const order = {
-    id,
-    createdAt: new Date().toISOString(),
-    customerName,
-    customerEmail,
-    status: 'pending',
-    statusNote: '',
-    subtotal,
-    items,
-  };
-
-  const existing = listOrders();
-  writeOrders([order, ...existing]);
-  return order;
-}
-
-export function createOrderFromCart({ cartItems = [], authSession = null, subtotal = 0 }) {
-  return createOrderFromItems({ items: cartItems, authSession, subtotal });
-}
-
-export function updateOrderStatus(orderId, nextStatus, statusNote = '') {
-  // If set to archived, route directly through removeOrder to shift to ARCHIVED_ORDERS_KEY
-  if (nextStatus === 'archived') {
-    removeOrder(orderId);
-    return;
+export async function fetchRatingsSummary() {
+  try {
+    const response = await axios.get(`${getApiBase()}/api/orders/ratings-summary`);
+    ratingsCache = response?.data?.summary || {};
+  } catch (error) {
+    console.error('Failed to load ratings summary:', error);
   }
-
-  const existing = listOrders();
-  const updated = existing.map((order) => (
-    order.id === orderId
-      ? {
-          ...order,
-          status: nextStatus,
-          statusNote: statusNote || order.statusNote || '',
-          updatedAt: new Date().toISOString(),
-        }
-      : order
-  ));
-
-  writeOrders(updated);
-}
-
-export function removeOrder(orderId) {
-  const existing = listOrders();
-  const target = existing.find((o) => o.id === orderId);
-  if (!target) return;
-
-  const remaining = existing.filter((o) => o.id !== orderId);
-  writeOrders(remaining);
-
-  const archived = listArchivedOrders();
-  const docLogEntry = {
-    ...target,
-    archivedAt: new Date().toISOString(),
-    archiveReason: 'Order removed/archived by Admin',
-  };
-  writeJson(ARCHIVED_ORDERS_KEY, [docLogEntry, ...archived]);
-}
-
-function getRatingsMap() {
-  const parsed = readJson(PRODUCT_RATINGS_KEY, {});
-  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
-  return parsed;
-}
-
-function writeRatingsMap(map) {
-  writeJson(PRODUCT_RATINGS_KEY, map);
+  return ratingsCache;
 }
 
 export function getProductReviewStats(productKey) {
-  const ratings = getRatingsMap();
-  const stats = ratings[productKey];
-  if (!stats || !stats.count || !stats.total) {
-    return null;
-  }
-
-  return {
-    rating: stats.total / stats.count,
-    reviews: stats.count,
-  };
+  const stats = ratingsCache[productKey];
+  if (!stats) return null;
+  return { rating: stats.rating, reviews: stats.reviews };
 }
 
-export function rateDeliveredOrderItem(orderId, itemCartId, ratingValue) {
-  const numericRating = Number.parseFloat(ratingValue);
-  if (!Number.isFinite(numericRating) || numericRating < 1 || numericRating > 5) return false;
+// ---- Orders -----------------------------------------------------------------
 
-  let updatedProductKey = '';
-  const existingOrders = listOrders();
-  const updatedOrders = existingOrders.map((order) => {
-    if (order.id !== orderId || order.status !== 'delivered') return order;
+// Creates an order. Works for guests (no authSession) and logged-in users.
+export async function createOrderFromItems({ items = [], authSession = null, subtotal = 0 }) {
+  const response = await axios.post(
+    `${getApiBase()}/api/orders`,
+    { items, subtotal },
+    { headers: authHeaders(authSession) }
+  );
+  return response.data.order;
+}
 
-    const nextItems = (order.items || []).map((item) => {
-      if (item.cartId !== itemCartId || item.userRating !== null) return item;
-      updatedProductKey = item.productKey;
-      return {
-        ...item,
-        userRating: numericRating,
-      };
+export async function createOrderFromCart({ cartItems = [], authSession = null, subtotal = 0 }) {
+  return createOrderFromItems({ items: cartItems, authSession, subtotal });
+}
+
+// Customer's own order history (non-archived). Requires a logged-in session;
+// guests won't have order history to look back up (matches old guest-only
+// localStorage filter, which only worked because it was all one browser).
+export async function getCustomerOrders(authSession) {
+  if (!authSession?.token) return [];
+
+  try {
+    const response = await axios.get(`${getApiBase()}/api/orders/mine`, {
+      headers: authHeaders(authSession),
     });
+    return response.data.orders || [];
+  } catch (error) {
+    console.error('Failed to load customer orders:', error);
+    return [];
+  }
+}
 
-    return {
-      ...order,
-      items: nextItems,
-      updatedAt: new Date().toISOString(),
-    };
-  });
+// Admin-only: every active order. Requires an admin authSession.token.
+export async function listOrders(authSession) {
+  try {
+    const response = await axios.get(`${getApiBase()}/api/orders`, {
+      headers: authHeaders(authSession),
+    });
+    return response.data.orders || [];
+  } catch (error) {
+    console.error('Failed to load orders:', error);
+    return [];
+  }
+}
 
-  if (!updatedProductKey) return false;
+// Admin-only: Confirm / Packing / Delivery in 2 days / Mark delivered,
+// optionally with a status note.
+export async function updateOrderStatus(orderId, nextStatus, statusNote, authSession) {
+  const response = await axios.patch(
+    `${getApiBase()}/api/orders/${orderId}/status`,
+    { status: nextStatus, statusNote },
+    { headers: authHeaders(authSession) }
+  );
+  return response.data.order;
+}
 
-  writeOrders(updatedOrders);
+// Admin-only: archive an order (soft delete). This is the only way to
+// archive now — there is no customer-facing path to this endpoint at all.
+export async function archiveOrder(orderId, authSession) {
+  const response = await axios.patch(
+    `${getApiBase()}/api/orders/${orderId}/archive`,
+    {},
+    { headers: authHeaders(authSession) }
+  );
+  return response.data.order;
+}
 
-  const ratings = getRatingsMap();
-  const current = ratings[updatedProductKey] || { total: 0, count: 0 };
-  ratings[updatedProductKey] = {
-    total: current.total + numericRating,
-    count: current.count + 1,
-  };
-  writeRatingsMap(ratings);
-
-  return true;
+// Logged-in customer rates one item on their own delivered order.
+export async function rateDeliveredOrderItem(orderId, itemCartId, ratingValue, authSession) {
+  try {
+    await axios.patch(
+      `${getApiBase()}/api/orders/${orderId}/rate`,
+      { cartId: itemCartId, rating: ratingValue },
+      { headers: authHeaders(authSession) }
+    );
+    // Refresh the cache so any visible star ratings update without a full reload.
+    fetchRatingsSummary();
+    return true;
+  } catch (error) {
+    console.error('Failed to submit rating:', error);
+    return false;
+  }
 }

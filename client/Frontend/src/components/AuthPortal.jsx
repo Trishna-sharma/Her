@@ -15,24 +15,7 @@ import {
   unmarkCatalogueItemDeleted,
   upsertCatalogueItemOverride,
 } from '../data/catalogAdminStore.js';
-import { listOrders, updateOrderStatus } from '../data/orderStore.js';
-
-const ADMIN_USERS_KEY = 'herby-admin-users';
-
-function readStorage(key, fallback = []) {
-  try {
-    const raw = window.localStorage.getItem(key);
-    if (!raw) return fallback;
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function writeStorage(key, value) {
-  window.localStorage.setItem(key, JSON.stringify(value));
-}
+import { archiveOrder, listOrders, updateOrderStatus } from '../data/orderStore.js';
 
 function normalizeEmail(value) {
   return String(value || '').trim().toLowerCase();
@@ -174,6 +157,11 @@ export default function AuthPortal({
   const [orderNotes, setOrderNotes] = useState({});
   const hasUploadedItemImage = itemForm.image && itemForm.image !== 'new-arrival.png';
 
+  // Orders now live on the real backend, so they're fetched async instead
+  // of read synchronously from localStorage.
+  const [adminOrders, setAdminOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+
   const toastTimerRef = useRef(null);
 
   useEffect(() => () => {
@@ -205,10 +193,29 @@ export default function AuthPortal({
 
   const managedItems = useMemo(() => getAdminItems(), [inventoryVersion]);
   const websiteItems = useMemo(() => listAllWebsiteItems(), [inventoryVersion]);
-  const adminOrders = useMemo(() => {
-    const orders = listOrders();
-    return orders.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
-  }, [ordersVersion]);
+
+  const refreshOrders = async () => {
+    if (!isAdminLoggedIn) {
+      setAdminOrders([]);
+      return;
+    }
+
+    setOrdersLoading(true);
+    try {
+      const orders = await listOrders(authSession);
+      const sorted = [...orders].sort(
+        (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+      );
+      setAdminOrders(sorted);
+    } finally {
+      setOrdersLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    refreshOrders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdminLoggedIn, ordersVersion, authSession?.token]);
 
   const categoryOptions = useMemo(
     () => ['All', ...new Set(websiteItems.map((item) => item.category))],
@@ -245,16 +252,6 @@ export default function AuthPortal({
     });
   }, [websiteItems, catalogueCategoryFilter, catalogueQuery]);
 
-  const ensureDefaultAdmin = () => {
-    const admins = readStorage(ADMIN_USERS_KEY, []);
-    if (admins.length === 0) {
-      const seeded = [{ email: 'admin@herbymou.com', password: 'admin123' }];
-      writeStorage(ADMIN_USERS_KEY, seeded);
-      return seeded;
-    }
-    return admins;
-  };
-
   const handleLogout = () => {
     const previousRole = authSession?.role === 'user' ? 'user' : 'admin';
     onAuthChange(null);
@@ -266,7 +263,11 @@ export default function AuthPortal({
     showToast('Logged out successfully.', 'neutral');
   };
 
-  const handleAdminAuth = () => {
+  // Admin login now goes through the real backend (POST /api/auth/admin-login)
+  // instead of checking a localStorage list. This is what actually makes the
+  // Archive/status-change endpoints safe — a fake "admin" role in the browser
+  // no longer produces a token the backend will accept.
+  const handleAdminAuth = async () => {
     if (hasActiveSession && !isAdminLoggedIn) {
       setNotice('Logout current user first, then login as admin.');
       return;
@@ -280,31 +281,20 @@ export default function AuthPortal({
       return;
     }
 
-    const admins = ensureDefaultAdmin();
+    try {
+      const rawBase = import.meta.env.VITE_API_URL || 'https://her-by-mou-backend.vercel.app';
+      const apiBase = rawBase.replace(/\/+$/, '');
 
-    if (mode === 'register') {
-      const exists = admins.some((entry) => entry.email === email);
-      if (exists) {
-        setNotice('Admin email already exists. Please login.');
-        return;
-      }
+      const response = await axios.post(`${apiBase}/api/auth/admin-login`, { email, password });
+      const { token, user } = response.data;
 
-      const updated = [...admins, { email, password }];
-      writeStorage(ADMIN_USERS_KEY, updated);
-      setMode('login');
-      setNotice('Admin account created. Please login now.');
-      return;
+      onAuthChange({ role: 'admin', email: user.email, name: user.name || 'Admin', token });
+      setNotice('');
+      showToast('Logged in successfully.', 'success');
+    } catch (error) {
+      const backendMessage = error?.response?.data?.message;
+      setNotice(backendMessage || 'Invalid admin credentials.');
     }
-
-    const valid = admins.find((entry) => entry.email === email && entry.password === password);
-    if (!valid) {
-      setNotice('Invalid admin credentials.');
-      return;
-    }
-
-    onAuthChange({ role: 'admin', email, name: 'Admin' });
-    setNotice('');
-    showToast('Logged in successfully.', 'success');
   };
 
   const handleGoogleSuccess = async (credentialResponse) => {
@@ -802,11 +792,29 @@ export default function AuthPortal({
     showToast('Item reset to original data.', 'neutral');
   };
 
-  const handleOrderStatusChange = (orderId, status) => {
-    const note = String(orderNotes[orderId] || '').trim();
-    updateOrderStatus(orderId, status, note);
-    setOrdersVersion((value) => value + 1);
-    showToast('Order status updated.', 'success');
+  // Admin-only actions — both now hit the real backend with the admin's
+  // JWT attached, so they 403 for anyone without a genuine admin token.
+  const handleOrderStatusChange = async (orderCode, status) => {
+    const note = String(orderNotes[orderCode] || '').trim();
+    try {
+      await updateOrderStatus(orderCode, status, note, authSession);
+      setOrdersVersion((value) => value + 1);
+      showToast('Order status updated.', 'success');
+    } catch (error) {
+      console.error('Failed to update order status:', error);
+      showToast('Failed to update order status.', 'neutral');
+    }
+  };
+
+  const handleArchiveOrder = async (orderCode) => {
+    try {
+      await archiveOrder(orderCode, authSession);
+      setOrdersVersion((value) => value + 1);
+      showToast('Order archived.', 'success');
+    } catch (error) {
+      console.error('Failed to archive order:', error);
+      showToast('Failed to archive order.', 'neutral');
+    }
   };
 
   const buildSessionDetails = () => {
@@ -852,15 +860,17 @@ export default function AuthPortal({
 
   const authMainClassName = isAdminLoggedIn ? 'auth-main' : 'auth-main auth-main-compact';
 
+  // Admin sign-in only — account creation for admins happens via the
+  // one-time backend seeding script, not through this form.
   const renderAdminAuthForm = () => (
     <section className="auth-compact-card" aria-label="Admin auth form">
-      <h2>{mode === 'login' ? 'Nice to see you again, Admin' : 'Create admin account'}</h2>
+      <h2>Nice to see you again, Admin</h2>
 
       <label className="auth-field">
-        <span>{mode === 'login' ? 'Email or phone number' : 'Email'}</span>
+        <span>Email</span>
         <input
           type="email"
-          placeholder={mode === 'login' ? 'Email or phone number' : 'admin@herbymou.com'}
+          placeholder="admin@herbymou.com"
           value={adminForm.email}
           onChange={(event) => setAdminForm((prev) => ({ ...prev, email: event.target.value }))}
         />
@@ -878,7 +888,7 @@ export default function AuthPortal({
 
       <div className="auth-inline-row">
         <label className="auth-checkline">
-          <input type="checkbox" defaultChecked={mode === 'login'} />
+          <input type="checkbox" defaultChecked />
           <span>Remember me</span>
         </label>
         <button
@@ -891,22 +901,8 @@ export default function AuthPortal({
       </div>
 
       <button type="button" className="auth-solid-action" onClick={handleAdminAuth}>
-        {mode === 'login' ? 'Sign in' : 'Sign up'}
+        Sign in
       </button>
-
-      <p className="auth-switch-row">
-        {mode === 'login' ? 'No account yet?' : 'Already have an account?'}{' '}
-        <button
-          type="button"
-          className="auth-text-link"
-          onClick={() => {
-            setMode((prev) => (prev === 'login' ? 'register' : 'login'));
-            setNotice('');
-          }}
-        >
-          {mode === 'login' ? 'Create account' : 'Log in'}
-        </button>
-      </p>
 
       <button
         type="button"
@@ -916,7 +912,7 @@ export default function AuthPortal({
         Continue as guest
       </button>
 
-      <small>Default admin: admin@herbymou.com / admin123</small>
+      <small>Admin accounts are created by your developer, not through this form.</small>
     </section>
   );
 
@@ -1360,14 +1356,16 @@ export default function AuthPortal({
         <summary>Order Tracker</summary>
         <p className="auth-catalog-caption">Update status here after you receive the WhatsApp order confirmation.</p>
 
-        {adminOrders.length === 0 ? (
+        {ordersLoading && adminOrders.length === 0 ? (
+          <p className="auth-catalog-empty">Loading orders…</p>
+        ) : adminOrders.length === 0 ? (
           <p className="auth-catalog-empty">No orders yet. Orders appear here after customers confirm cart on WhatsApp.</p>
         ) : (
           <div className="auth-catalog-list">
             {adminOrders.map((order) => (
-              <article key={order.id} className="auth-catalog-card">
+              <article key={order.orderCode} className="auth-catalog-card">
                 <div className="auth-catalog-meta">
-                  <h3>{order.id}</h3>
+                  <h3>{order.orderCode}</h3>
                   <p>{order.customerName || 'Guest customer'}{order.customerEmail ? ` • ${order.customerEmail}` : ''}</p>
                   <small>{new Date(order.createdAt).toLocaleString()}</small>
                 </div>
@@ -1378,33 +1376,33 @@ export default function AuthPortal({
                     <input
                       type="text"
                       placeholder="Packing now, delivery in 2 days"
-                      value={orderNotes[order.id] ?? order.statusNote ?? ''}
+                      value={orderNotes[order.orderCode] ?? order.statusNote ?? ''}
                       onChange={(event) => setOrderNotes((prev) => ({
                         ...prev,
-                        [order.id]: event.target.value,
+                        [order.orderCode]: event.target.value,
                       }))}
                     />
                   </label>
                 </div>
 
                 <div className="auth-order-actions">
-                  <button type="button" className="secondary-button" onClick={() => handleOrderStatusChange(order.id, 'confirmed')}>
+                  <button type="button" className="secondary-button" onClick={() => handleOrderStatusChange(order.orderCode, 'confirmed')}>
                     Confirm order
                   </button>
-                  <button type="button" className="secondary-button" onClick={() => handleOrderStatusChange(order.id, 'packing')}>
+                  <button type="button" className="secondary-button" onClick={() => handleOrderStatusChange(order.orderCode, 'packing')}>
                     Packing
                   </button>
-                  <button type="button" className="secondary-button" onClick={() => handleOrderStatusChange(order.id, 'delivery_2d')}>
+                  <button type="button" className="secondary-button" onClick={() => handleOrderStatusChange(order.orderCode, 'delivery_2d')}>
                     Delivery in 2 days
                   </button>
-                  <button type="button" className="secondary-button" onClick={() => handleOrderStatusChange(order.id, 'delivered')}>
+                  <button type="button" className="secondary-button" onClick={() => handleOrderStatusChange(order.orderCode, 'delivered')}>
                     Mark delivered
                   </button>
                 </div>
 
                 <div className="auth-order-items">
                   {(order.items || []).map((item) => (
-                    <p key={`${order.id}-${item.cartId}`}>
+                    <p key={`${order.orderCode}-${item.cartId}`}>
                       {item.name} • Qty {item.quantity}
                       {item.userRating !== null ? ` • User rating ${item.userRating}/5` : ''}
                     </p>
@@ -1414,10 +1412,10 @@ export default function AuthPortal({
                 <div className="auth-catalog-actions">
                   <button
                     type="button"
-                    className="secondary-button"
-                    onClick={() => handleOrderStatusChange(order.id, order.status)}
+                    className="startshopping-remove"
+                    onClick={() => handleArchiveOrder(order.orderCode)}
                   >
-                    Save status note
+                    Archive order
                   </button>
                 </div>
               </article>
