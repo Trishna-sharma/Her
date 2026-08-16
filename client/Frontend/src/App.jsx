@@ -6,21 +6,22 @@ import CategoryDetail from './components/CategoryDetail.jsx';
 import ContactPage from './components/Contact.jsx';
 import Startshopping from './components/startshopping.jsx';
 import AuthPortal from './components/AuthPortal.jsx';
+import { initialCategoryConfig } from './data/categoryData.js';
+import {
+  getCategoryVisibilitySettings,
+  saveCategoryVisibilitySettings,
+} from './data/catalogAdminStore.js';
 
 const AUTH_SESSION_KEY = 'herby-auth-session';
 const THEME_KEY = 'herby-theme';
 
-const categories = [
-  'Clothing',
-  'Jewellery',
-  'Makeup',
-  'Shoes',
-  'Bags',
-  'Skin Care',
-];
-
 export default function App() {
   const [page, setPage] = useState('welcome');
+  const [categoryConfig, setCategoryConfig] = useState(() => {
+    const saved = getCategoryVisibilitySettings();
+    return saved || initialCategoryConfig;
+  });
+
   const [theme, setTheme] = useState(() => {
     try {
       return window.localStorage.getItem(THEME_KEY) === 'dark' ? 'dark' : 'light';
@@ -28,6 +29,7 @@ export default function App() {
       return 'light';
     }
   });
+
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedSection, setSelectedSection] = useState(null);
   const [cartItems, setCartItems] = useState([]);
@@ -37,6 +39,26 @@ export default function App() {
   const [authReturnTarget, setAuthReturnTarget] = useState(null);
   const [uiToast, setUiToast] = useState(null);
   const toastTimerRef = useRef(null);
+
+  // Derive public categories for customer-facing views
+  const visibleCategories = categoryConfig
+    .filter((cat) => cat.isPublic)
+    .map((cat) => cat.name);
+
+  // Derive all category names for Admin components
+  const allCategories = categoryConfig.map((cat) => cat.name);
+
+  useEffect(() => {
+    saveCategoryVisibilitySettings(categoryConfig);
+  }, [categoryConfig]);
+
+  const toggleCategoryVisibility = (categoryName) => {
+    setCategoryConfig((prev) =>
+      prev.map((cat) =>
+        cat.name === categoryName ? { ...cat, isPublic: !cat.isPublic } : cat
+      )
+    );
+  };
 
   const showUiToast = (message, tone = 'success') => {
     setUiToast({ message, tone });
@@ -56,7 +78,7 @@ export default function App() {
       if (storedWishlist) setWishlistItems(JSON.parse(storedWishlist));
       if (storedAuthSession) setAuthSession(JSON.parse(storedAuthSession));
     } catch {
-      // Ignore storage parse issues and continue with default state.
+      // Ignore storage parse issues
     }
   }, []);
 
@@ -73,7 +95,6 @@ export default function App() {
       window.localStorage.removeItem(AUTH_SESSION_KEY);
       return;
     }
-
     window.localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(authSession));
   }, [authSession]);
 
@@ -230,7 +251,7 @@ export default function App() {
   if (page === 'category') {
     return renderPage(
       <CategoryPage
-        categories={categories}
+        categories={visibleCategories}
         onBack={() => navTo('welcome')}
         onNavigate={navTo}
         onAddCartItem={addCartItem}
@@ -248,7 +269,7 @@ export default function App() {
       <Gallery
         onNavigate={navTo}
         selectedCategory={selectedCategory}
-        categories={categories}
+        categories={visibleCategories}
         activePage={page}
         onLoginClick={openLogin}
         authSession={authSession}
@@ -293,7 +314,7 @@ export default function App() {
     return renderPage(
       <Startshopping
         onNavigate={navTo}
-        categories={categories}
+        categories={visibleCategories}
         activePage={page}
         cartItems={cartItems}
         wishlistItems={wishlistItems}
@@ -321,6 +342,9 @@ export default function App() {
         onClose={closeLogin}
         theme={theme}
         onToggleTheme={toggleTheme}
+        categoryConfig={categoryConfig}
+        allCategories={allCategories}
+        onToggleCategoryVisibility={toggleCategoryVisibility}
       />
     );
   }

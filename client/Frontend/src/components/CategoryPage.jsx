@@ -148,19 +148,19 @@ export default function CategoryPage({
 
       <div className="category-page-content">
         <aside className="category-panel">
-          <p className="sidebar-label">Shop by category</p>
-          <div className="category-list">
-            {categories.map((category) => (
-              <button
-                key={category}
-                className="category-pill"
-                onClick={() => onNavigate('gallery', category)}
-              >
-                {category}
-              </button>
-            ))}
-          </div>
-        </aside>
+  <p className="sidebar-label">Shop by category</p>
+  <div className="category-list">
+    {categories.map((category) => (
+      <button
+        key={category}
+        className="category-pill"
+        onClick={() => onNavigate('gallery', category)}
+      >
+        {category}
+      </button>
+    ))}
+  </div>
+</aside>
 
         <section className="category-hero">
           <div className="hero-copy">

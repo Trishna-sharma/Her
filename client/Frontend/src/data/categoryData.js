@@ -1,25 +1,16 @@
+
+// Re-ordered list with Skin Care and Makeup in 1st & 2nd position, and visibility flags
+export const categoryList = [
+  { name: 'Skin Care', isPublic: true },
+  { name: 'Makeup', isPublic: true },
+  { name: 'Clothing', isPublic: false },
+  { name: 'Jewellery', isPublic: false },
+  { name: 'Shoes', isPublic: false },
+  { name: 'Bags', isPublic: false },
+];
+
+
 export const categoryData = {
-  Jewellery: [
-    { id: 1, name: 'Necklaces', img: 'new-arrival.png', price: '$120' },
-    { id: 2, name: 'Earrings', img: 'new-arrival.png', price: '$85' },
-    { id: 3, name: 'Bangles', img: 'new-arrival.png', price: '$65' },
-    { id: 4, name: 'Maang Tikka', img: 'new-arrival.png', price: '$95' },
-    { id: 5, name: 'Nose Rings', img: 'new-arrival.png', price: '$45' },
-    { id: 6, name: 'Everyday Edit', img: 'new-arrival.png', price: '$85' },
-    { id: 7, name: 'Festive Edit', img: 'new-arrival.png', price: '$130' },
-    { id: 8, name: 'Premium Edit', img: 'new-arrival.png', price: '$175' },
-  ],
-  Clothing: [
-    { id: 1, name: 'Lehengas', img: 'new-arrival.png', price: '$149' },
-    { id: 2, name: 'Kurtis', img: 'new-arrival.png', price: '$99' },
-    { id: 3, name: 'Salwar Kameez', img: 'new-arrival.png', price: '$119' },
-    { id: 4, name: 'Tops', img: 'new-arrival.png', price: '$79' },
-    { id: 5, name: 'Sarees', img: 'new-arrival.png', price: '$189' },
-    { id: 6, name: 'Anarkalis', img: 'new-arrival.png', price: '$159' },
-    { id: 7, name: 'Everyday Edit', img: 'new-arrival.png', price: '$99' },
-    { id: 8, name: 'Festive Edit', img: 'new-arrival.png', price: '$149' },
-    { id: 9, name: 'Premium Edit', img: 'new-arrival.png', price: '$199' },
-  ],
   'Skin Care': [
     { id: 1, name: 'Serums', img: 'new-arrival.png', price: '$45' },
     { id: 2, name: 'Toners', img: 'new-arrival.png', price: '$35' },
@@ -40,6 +31,27 @@ export const categoryData = {
     { id: 6, name: 'Everyday Edit', img: 'new-arrival.png', price: '$25' },
     { id: 7, name: 'Festive Edit', img: 'new-arrival.png', price: '$35' },
     { id: 8, name: 'Premium Edit', img: 'new-arrival.png', price: '$50' },
+  ],
+  Jewellery: [
+    { id: 1, name: 'Necklaces', img: 'new-arrival.png', price: '$120' },
+    { id: 2, name: 'Earrings', img: 'new-arrival.png', price: '$85' },
+    { id: 3, name: 'Bangles', img: 'new-arrival.png', price: '$65' },
+    { id: 4, name: 'Maang Tikka', img: 'new-arrival.png', price: '$95' },
+    { id: 5, name: 'Nose Rings', img: 'new-arrival.png', price: '$45' },
+    { id: 6, name: 'Everyday Edit', img: 'new-arrival.png', price: '$85' },
+    { id: 7, name: 'Festive Edit', img: 'new-arrival.png', price: '$130' },
+    { id: 8, name: 'Premium Edit', img: 'new-arrival.png', price: '$175' },
+  ],
+  Clothing: [
+    { id: 1, name: 'Lehengas', img: 'new-arrival.png', price: '$149' },
+    { id: 2, name: 'Kurtis', img: 'new-arrival.png', price: '$99' },
+    { id: 3, name: 'Salwar Kameez', img: 'new-arrival.png', price: '$119' },
+    { id: 4, name: 'Tops', img: 'new-arrival.png', price: '$79' },
+    { id: 5, name: 'Sarees', img: 'new-arrival.png', price: '$189' },
+    { id: 6, name: 'Anarkalis', img: 'new-arrival.png', price: '$159' },
+    { id: 7, name: 'Everyday Edit', img: 'new-arrival.png', price: '$99' },
+    { id: 8, name: 'Festive Edit', img: 'new-arrival.png', price: '$149' },
+    { id: 9, name: 'Premium Edit', img: 'new-arrival.png', price: '$199' },
   ],
   Shoes: [
     { id: 1, name: 'Heels', img: 'new-arrival.png', price: '$89' },

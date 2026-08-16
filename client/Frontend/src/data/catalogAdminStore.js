@@ -3,6 +3,15 @@ import { categoryData, categoryDetailSections, categorySectionCatalogueRows } fr
 const ADMIN_ITEMS_KEY = 'herby-admin-items';
 const DELETED_CATALOGUE_ITEMS_KEY = 'herby-deleted-catalogue-items';
 const CATALOGUE_OVERRIDES_KEY = 'herby-catalogue-overrides';
+const CATEGORY_VISIBILITY_KEY = 'herby-category-visibility';
+
+export function getCategoryVisibilitySettings() {
+  return readStorage(CATEGORY_VISIBILITY_KEY, null);
+}
+
+export function saveCategoryVisibilitySettings(settings) {
+  writeStorage(CATEGORY_VISIBILITY_KEY, settings);
+}
 
 export const rowThemes = [
   { label: 'Everyday Edit', namePrefix: 'Everyday', priceDelta: -8 },
