@@ -281,8 +281,13 @@ export default function AuthPortal({
       return;
     }
 
-    // --- HARDCODED ADMIN CHECK ---
-    if (email === 'admin@herbymou.com' && password === 'admin123') {
+    // --- INDIVIDUAL ADMIN CREDENTIALS ---
+    const adminCredentials = {
+      'mou@bella.com': 'MouPassword123!',   // Password for Mou
+      'huma@bella.com': 'HumaPassword456!', // Password for Huma
+    };
+
+    if (adminCredentials[email] && adminCredentials[email] === password) {
       onAuthChange({
         role: 'admin',
         email: email,
@@ -293,7 +298,7 @@ export default function AuthPortal({
       showToast('Logged in successfully (Local).', 'success');
       return;
     }
-    // -----------------------------
+    // ------------------------------------
 
     try {
       const rawBase = import.meta.env.VITE_API_URL || 'https://bella-liliac-backend.vercel.app/';
@@ -310,6 +315,8 @@ export default function AuthPortal({
       setNotice(backendMessage || 'Invalid admin credentials.');
     }
   };
+
+
   const handleGoogleSuccess = async (credentialResponse) => {
     try {
       const rawBase = import.meta.env.VITE_API_URL || 'https://bella-liliac-backend.vercel.app/';
