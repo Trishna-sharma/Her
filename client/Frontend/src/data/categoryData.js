@@ -1,6 +1,6 @@
 
 // Re-ordered list with Skin Care and Makeup in 1st & 2nd position, and visibility flags
-export const categoryList = [
+export const initialCategoryConfig= [
   { name: 'Skin Care', isPublic: true },
   { name: 'Makeup', isPublic: true },
   { name: 'Clothing', isPublic: false },
