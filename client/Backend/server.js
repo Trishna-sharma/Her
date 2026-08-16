@@ -43,7 +43,7 @@ const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
   'http://localhost:3000',
-  'https://her-by-mou-frontend.vercel.app',
+  'https://bella-liliac.vercel.app',
   process.env.CLIENT_URL,
 ].filter(Boolean);
 

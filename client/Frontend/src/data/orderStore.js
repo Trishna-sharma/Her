@@ -9,7 +9,7 @@ export const ORDER_STATUSES = [
 ];
 
 function getApiBase() {
-  const rawBase = import.meta.env.VITE_API_URL || 'https://her-by-mou-backend.vercel.app';
+  const rawBase = import.meta.env.VITE_API_URL || 'https://bella-liliac-backend.vercel.app/';
   return rawBase.replace(/\/+$/, '');
 }
 

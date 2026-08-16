@@ -281,8 +281,22 @@ export default function AuthPortal({
       return;
     }
 
+    // --- HARDCODED ADMIN CHECK ---
+    if (email === 'admin@herbymou.com' && password === 'admin123') {
+      onAuthChange({
+        role: 'admin',
+        email: email,
+        name: 'Admin',
+        token: 'local-mock-admin-token',
+      });
+      setNotice('');
+      showToast('Logged in successfully (Local).', 'success');
+      return;
+    }
+    // -----------------------------
+
     try {
-      const rawBase = import.meta.env.VITE_API_URL || 'https://her-by-mou-backend.vercel.app';
+      const rawBase = import.meta.env.VITE_API_URL || 'https://bella-liliac-backend.vercel.app/';
       const apiBase = rawBase.replace(/\/+$/, '');
 
       const response = await axios.post(`${apiBase}/api/auth/admin-login`, { email, password });
@@ -296,10 +310,9 @@ export default function AuthPortal({
       setNotice(backendMessage || 'Invalid admin credentials.');
     }
   };
-
   const handleGoogleSuccess = async (credentialResponse) => {
     try {
-      const rawBase = import.meta.env.VITE_API_URL || 'https://her-by-mou-backend.vercel.app';
+      const rawBase = import.meta.env.VITE_API_URL || 'https://bella-liliac-backend.vercel.app/';
       const apiBase = rawBase.replace(/\/+$/, '');
 
       const response = await axios.post(`${apiBase}/api/auth/google`, {
@@ -337,7 +350,7 @@ export default function AuthPortal({
     const email = normalizeEmail(userForm.email);
     const password = userForm.password;
 
-    const rawBase = import.meta.env.VITE_API_URL || 'https://her-by-mou-backend.vercel.app';
+    const rawBase = import.meta.env.VITE_API_URL || 'https://bella-liliac-backend.vercel.app';
     const apiBase = rawBase.replace(/\/+$/, '');
 
     try {
@@ -418,7 +431,7 @@ export default function AuthPortal({
 
   const handleResendOtp = async () => {
     const email = normalizeEmail(userForm.email);
-    const rawBase = import.meta.env.VITE_API_URL || 'https://her-by-mou-backend.vercel.app';
+    const rawBase = import.meta.env.VITE_API_URL || 'https://bella-liliac-backend.vercel.app';
     const apiBase = rawBase.replace(/\/+$/, '');
 
     try {
@@ -514,7 +527,7 @@ export default function AuthPortal({
       return;
     }
 
-    const rawBase = import.meta.env.VITE_API_URL || 'https://her-by-mou-backend.vercel.app';
+    const rawBase = import.meta.env.VITE_API_URL || 'https://bella-liliac-backend.vercel.app';
     const apiBase = rawBase.replace(/\/+$/, '');
     const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || '';
 
