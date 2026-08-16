@@ -154,6 +154,61 @@ const sendOtpEmail = async (email, otp) => {
 
 // --- ROUTES ---
 
+// --- LIVE TRACKING & MONITORING ---
+// In-memory tracker store
+const activeSessions = new Map();
+
+// Helper to clean up inactive users (older than 30 seconds)
+const cleanInactiveSessions = () => {
+  const now = Date.now();
+  for (const [key, session] of activeSessions.entries()) {
+    if (now - session.lastSeen > 30000) {
+      activeSessions.delete(key);
+    }
+  }
+};
+
+// User Heartbeat Ping Endpoint
+app.post('/api/auth/heartbeat', (req, res) => {
+  const { sessionId, role, page, email, userAgent } = req.body;
+  if (!sessionId) {
+    return res.status(400).json({ message: 'Session ID is required' });
+  }
+
+  activeSessions.set(sessionId, {
+    sessionId,
+    role: role || 'guest',
+    page: page || 'welcome',
+    email: email || 'Guest',
+    userAgent: userAgent || req.headers['user-agent'],
+    ip: req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress,
+    lastSeen: Date.now(),
+  });
+
+  return res.status(200).json({ status: 'ok' });
+});
+
+// Admin Dashboard Tracker Endpoint
+app.get('/api/admin/monitoring-dashboard', (req, res) => {
+  cleanInactiveSessions();
+  const sessions = Array.from(activeSessions.values());
+
+  const activeUsersCount = sessions.length;
+  const adminCount = sessions.filter((s) => s.role === 'admin').length;
+  const guestCount = sessions.filter((s) => s.role === 'guest').length;
+  const userCount = sessions.filter((s) => s.role === 'user').length;
+
+  return res.json({
+    summary: {
+      totalActive: activeUsersCount,
+      admins: adminCount,
+      registeredUsers: userCount,
+      guests: guestCount,
+    },
+    activeSessions: sessions,
+  });
+});
+
 app.get('/api/uploads/cloudinary-signature', (req, res) => {
   const timestamp = Math.round(Date.now() / 1000);
   const folder = 'her-by-mou/items';

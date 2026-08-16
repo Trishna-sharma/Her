@@ -125,6 +125,45 @@ export default function App() {
     });
   };
 
+  // Generate or retrieve a persistent session identifier for live tracking
+const [sessionId] = useState(() => {
+  let id = window.localStorage.getItem('herby-tracker-session-id');
+  if (!id) {
+    id = 'sess_' + Math.random().toString(36).substring(2, 11) + '_' + Date.now();
+    window.localStorage.setItem('herby-tracker-session-id', id);
+  }
+  return id;
+});
+
+// Heartbeat interval to send live user status to backend
+useEffect(() => {
+  const rawBase = import.meta.env.VITE_API_URL || 'https://bella-liliac-backend.vercel.app';
+  const apiBase = rawBase.replace(/\/+$/, '');
+
+  const sendHeartbeat = async () => {
+    try {
+      await fetch(`${apiBase}/api/auth/heartbeat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId,
+          role: authSession?.role || 'guest',
+          page,
+          email: authSession?.email || 'Guest',
+          userAgent: navigator.userAgent,
+        }),
+      });
+    } catch (err) {
+      // Ignore heartbeat connection errors quietly
+    }
+  };
+
+  sendHeartbeat();
+  const interval = setInterval(sendHeartbeat, 10000); // Ping every 10 seconds
+
+  return () => clearInterval(interval);
+}, [sessionId, page, authSession]);
+
   const addCartItem = (item) => {
     if (!item?.cartId) return;
 

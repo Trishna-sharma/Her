@@ -48,8 +48,6 @@ function combinePrice(code, customSymbol, amount) {
   return `${symbol}${cleanAmount}`;
 }
 
-// Splits a stored price string like "৳900" or "$45.50" back into
-// a currency code + raw numeric amount, so existing items can be edited.
 function parsePriceValue(raw) {
   const str = String(raw || '').trim();
   const match = str.match(/^([^\d]*)([\d.,]*)$/);
@@ -157,10 +155,11 @@ export default function AuthPortal({
   const [orderNotes, setOrderNotes] = useState({});
   const hasUploadedItemImage = itemForm.image && itemForm.image !== 'new-arrival.png';
 
-  // Orders now live on the real backend, so they're fetched async instead
-  // of read synchronously from localStorage.
   const [adminOrders, setAdminOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
+
+  // LIVE MONITOR TRACKER STATE
+  const [monitorData, setMonitorData] = useState({ summary: {}, activeSessions: [] });
 
   const toastTimerRef = useRef(null);
 
@@ -190,6 +189,26 @@ export default function AuthPortal({
   const isAdminLoggedIn = authSession?.role === 'admin';
   const isUserLoggedIn = authSession?.role === 'user';
   const hasActiveSession = Boolean(authSession);
+
+  // FETCH LIVE MONITOR DATA PERIODICALLY FOR ADMINS
+  useEffect(() => {
+    if (!isAdminLoggedIn) return;
+
+    const fetchMonitorData = async () => {
+      try {
+        const rawBase = import.meta.env.VITE_API_URL || 'https://bella-liliac-backend.vercel.app';
+        const apiBase = rawBase.replace(/\/+$/, '');
+        const response = await axios.get(`${apiBase}/api/admin/monitoring-dashboard`);
+        setMonitorData(response.data);
+      } catch (err) {
+        console.error('Failed to fetch live monitoring data:', err);
+      }
+    };
+
+    fetchMonitorData();
+    const interval = setInterval(fetchMonitorData, 5000); // Refresh every 5s
+    return () => clearInterval(interval);
+  }, [isAdminLoggedIn]);
 
   const managedItems = useMemo(() => getAdminItems(), [inventoryVersion]);
   const websiteItems = useMemo(() => listAllWebsiteItems(), [inventoryVersion]);
@@ -263,10 +282,6 @@ export default function AuthPortal({
     showToast('Logged out successfully.', 'neutral');
   };
 
-  // Admin login now goes through the real backend (POST /api/auth/admin-login)
-  // instead of checking a localStorage list. This is what actually makes the
-  // Archive/status-change endpoints safe — a fake "admin" role in the browser
-  // no longer produces a token the backend will accept.
   const handleAdminAuth = async () => {
     if (hasActiveSession && !isAdminLoggedIn) {
       setNotice('Logout current user first, then login as admin.');
@@ -281,10 +296,9 @@ export default function AuthPortal({
       return;
     }
 
-    // --- INDIVIDUAL ADMIN CREDENTIALS ---
     const adminCredentials = {
-      'mou@bella.com': 'MouPassword123!',   // Password for Mou
-      'huma@bella.com': 'HumaPassword456!', // Password for Huma
+      'mou@bella.com': 'MouPassword123!',
+      'huma@bella.com': 'HumaPassword456!',
     };
 
     if (adminCredentials[email] && adminCredentials[email] === password) {
@@ -298,7 +312,6 @@ export default function AuthPortal({
       showToast('Logged in successfully (Local).', 'success');
       return;
     }
-    // ------------------------------------
 
     try {
       const rawBase = import.meta.env.VITE_API_URL || 'https://bella-liliac-backend.vercel.app/';
@@ -315,7 +328,6 @@ export default function AuthPortal({
       setNotice(backendMessage || 'Invalid admin credentials.');
     }
   };
-
 
   const handleGoogleSuccess = async (credentialResponse) => {
     try {
@@ -361,9 +373,7 @@ export default function AuthPortal({
     const apiBase = rawBase.replace(/\/+$/, '');
 
     try {
-      // --- REGISTRATION FLOW ---
       if (mode === 'register') {
-        // Step 1: Send OTP to Email
         if (!otpStep) {
           if (!name || !email || !password) {
             setNotice('Please fill in your name, email, and password.');
@@ -379,7 +389,6 @@ export default function AuthPortal({
           return;
         }
 
-        // Step 2: Verify OTP & Create Account
         if (otpStep) {
           if (!otp.trim()) {
             setNotice('Please enter the 6-digit OTP code.');
@@ -408,7 +417,6 @@ export default function AuthPortal({
         }
       }
 
-      // --- LOGIN FLOW ---
       if (!email || !password) {
         setNotice('Enter your email and password.');
         return;
@@ -812,8 +820,6 @@ export default function AuthPortal({
     showToast('Item reset to original data.', 'neutral');
   };
 
-  // Admin-only actions — both now hit the real backend with the admin's
-  // JWT attached, so they 403 for anyone without a genuine admin token.
   const handleOrderStatusChange = async (orderCode, status) => {
     const note = String(orderNotes[orderCode] || '').trim();
     try {
@@ -880,8 +886,6 @@ export default function AuthPortal({
 
   const authMainClassName = isAdminLoggedIn ? 'auth-main' : 'auth-main auth-main-compact';
 
-  // Admin sign-in only — account creation for admins happens via the
-  // one-time backend seeding script, not through this form.
   const renderAdminAuthForm = () => (
     <section className="auth-compact-card" aria-label="Admin auth form">
       <h2>Nice to see you again, Admin</h2>
@@ -947,6 +951,46 @@ export default function AuthPortal({
           Logout
         </button>
       </div>
+
+      {/* LIVE VISITOR & MONITOR TRACKER */}
+      <details className="auth-admin-section" open>
+        <summary>Live Visitor Tracker</summary>
+        <p className="auth-catalog-caption">Real-time active visitors and admin session counts.</p>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', margin: '1rem 0' }}>
+          <div style={{ padding: '0.8rem', background: 'rgba(0,0,0,0.05)', borderRadius: '8px', textAlign: 'center' }}>
+            <h3 style={{ margin: 0 }}>{monitorData.summary?.totalActive || 0}</h3>
+            <small>Total Active</small>
+          </div>
+          <div style={{ padding: '0.8rem', background: 'rgba(0,0,0,0.05)', borderRadius: '8px', textAlign: 'center' }}>
+            <h3 style={{ margin: 0 }}>{monitorData.summary?.registeredUsers || 0}</h3>
+            <small>Users</small>
+          </div>
+          <div style={{ padding: '0.8rem', background: 'rgba(0,0,0,0.05)', borderRadius: '8px', textAlign: 'center' }}>
+            <h3 style={{ margin: 0 }}>{monitorData.summary?.guests || 0}</h3>
+            <small>Guests</small>
+          </div>
+          <div style={{ padding: '0.8rem', background: 'rgba(0,0,0,0.05)', borderRadius: '8px', textAlign: 'center' }}>
+            <h3 style={{ margin: 0 }}>{monitorData.summary?.admins || 0}</h3>
+            <small>Admins</small>
+          </div>
+        </div>
+
+        <div className="auth-catalog-list">
+          {monitorData.activeSessions?.length === 0 ? (
+            <p className="auth-catalog-empty">No active visitors right now.</p>
+          ) : (
+            monitorData.activeSessions?.map((session) => (
+              <article key={session.sessionId} className="auth-catalog-card" style={{ padding: '0.8rem' }}>
+                <div className="auth-catalog-meta">
+                  <h3>{session.email} <small>({session.role})</small></h3>
+                  <p>Viewing Page: <strong>{session.page}</strong></p>
+                </div>
+              </article>
+            ))
+          )}
+        </div>
+      </details>
 
       <details className="auth-admin-section" open>
         <summary>Add New Item</summary>
@@ -1488,7 +1532,6 @@ export default function AuthPortal({
             : 'Create account'}
         </h2>
 
-        {/* --- REGISTRATION INPUTS (STEP 1) --- */}
         {mode === 'register' && !otpStep && (
           <label className="auth-field">
             <span>User name</span>
@@ -1501,7 +1544,6 @@ export default function AuthPortal({
           </label>
         )}
 
-        {/* --- EMAIL & PASSWORD INPUTS (For Login and Register Step 1) --- */}
         {!otpStep && (
           <>
             <label className="auth-field">
@@ -1526,7 +1568,6 @@ export default function AuthPortal({
           </>
         )}
 
-        {/* --- OTP CODE INPUT (STEP 2) --- */}
         {mode === 'register' && otpStep && (
           <>
             <p style={{ fontSize: '0.88rem', opacity: 0.85, marginBottom: '12px' }}>
@@ -1554,7 +1595,6 @@ export default function AuthPortal({
           </>
         )}
 
-        {/* --- CHECKBOX / EXTRA LINKS --- */}
         {mode === 'login' && (
           <div className="auth-inline-row">
             <label className="auth-checkline">
@@ -1578,7 +1618,6 @@ export default function AuthPortal({
           </label>
         )}
 
-        {/* --- MAIN ACTION BUTTON --- */}
         <button type="button" className="auth-solid-action" onClick={handleUserAuth}>
           {mode === 'login'
             ? 'Sign in'
