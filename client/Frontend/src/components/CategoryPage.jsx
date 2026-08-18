@@ -10,7 +10,7 @@ const arrivals = [
     id: 'arr-1',
     name: 'Minimal Ivory Lehenga',
     price: '$219',
-    img: 'new-arrival.png',
+    img: '/new-arrival.png',
     category: 'Clothing',
     section: 'Lehengas',
   },
@@ -18,7 +18,7 @@ const arrivals = [
     id: 'arr-2',
     name: 'Embroidered Festive Lehenga',
     price: '$309',
-    img: 'new-arrival(1).jpg',
+    img: '/new-arrival(1).jpg',
     category: 'Clothing',
     section: 'Lehengas',
   },
@@ -26,7 +26,7 @@ const arrivals = [
     id: 'arr-3',
     name: 'Classic Anarkali',
     price: '$119',
-    img: 'new-arrival.png',
+    img: '/new-arrival.png',
     category: 'Clothing',
     section: 'Anarkalis',
   },
@@ -34,7 +34,7 @@ const arrivals = [
     id: 'arr-4',
     name: 'Royal Red Bridal Lehenga',
     price: '$359',
-    img: 'new-arrival(1).jpg',
+    img: '/new-arrival(1).jpg',
     category: 'Clothing',
     section: 'Lehengas',
   },
@@ -121,7 +121,7 @@ export default function CategoryPage({
     openWhatsApp(arrivalOrderMessage(item));
   };
 
-  const arrivalOrderMessage = (item) => (
+  const arrivalOrderMessage = (item) =>
     [
       'Hello Her by Mou,',
       '',
@@ -130,48 +130,61 @@ export default function CategoryPage({
       `Section: ${item.section}`,
       `Price: ${item.price}`,
       'Quantity: 1',
-    ].join('\n')
-  );
+    ].join('\n');
 
   return (
     <div className="category-page">
       <header className="page-top-nav">
-        <button type="button" className="logo logo-home" onClick={() => onNavigate('welcome')} aria-label="Go to home page">
+        <button
+          type="button"
+          className="logo logo-home"
+          onClick={() => onNavigate('welcome')}
+          aria-label="Go to home page"
+        >
           <img
             src={theme === 'dark' ? '/bella_dark.png' : '/bella_light.png'}
             alt="Bella logo"
           />
         </button>
-        <Navigation onNavigate={onNavigate} activePage={activePage} theme={theme} onToggleTheme={onToggleTheme} />
+        <Navigation
+          onNavigate={onNavigate}
+          activePage={activePage}
+          theme={theme}
+          onToggleTheme={onToggleTheme}
+        />
         <AuthStatusButton authSession={authSession} onClick={onLoginClick} />
       </header>
 
       <div className="category-page-content">
         <aside className="category-panel">
-  <p className="sidebar-label">Shop by category</p>
-  <div className="category-list">
-    {categories.map((category) => (
-      <button
-        key={category}
-        className="category-pill"
-        onClick={() => onNavigate('gallery', category)}
-      >
-        {category}
-      </button>
-    ))}
-  </div>
-</aside>
+          <p className="sidebar-label">Shop by category</p>
+          <div className="category-list">
+            {categories.map((category) => (
+              <button
+                key={category}
+                className="category-pill"
+                onClick={() => onNavigate('gallery', category)}
+              >
+                {category}
+              </button>
+            ))}
+          </div>
+        </aside>
 
         <section className="category-hero">
           <div className="hero-copy">
-            <div className="eyebrow">Her by Mou</div>
-            <h1>Celebrate every look with curated Bangladeshi style.</h1>
+            <div className="eyebrow">Be Bella</div>
+            <h1>Skincare at your doorstep.</h1>
             <p>
-              Discover the latest clothing, jewellery, makeup, shoes,
-              bags, and skin care collections in one vibrant place.
+              Discover the latest makeup and skin care collections in one vibrant place.
             </p>
             <div className="hero-actions">
-              <button className="primary-button" onClick={() => arrivalsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+              <button
+                className="primary-button"
+                onClick={() =>
+                  arrivalsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                }
+              >
                 Browse new arrivals
               </button>
               <button className="secondary-button" onClick={onBack}>
@@ -199,7 +212,11 @@ export default function CategoryPage({
                   </div>
 
                   <div className="new-arrival-actions">
-                    <button type="button" className="primary-button" onClick={() => addArrivalToCart(item)}>
+                    <button
+                      type="button"
+                      className="primary-button"
+                      onClick={() => addArrivalToCart(item)}
+                    >
                       Add to cart
                     </button>
                     <button
@@ -217,8 +234,22 @@ export default function CategoryPage({
             <div className="arrivals-footer">
               <span className="hero-sticker-label">New arrivals</span>
               <div className="arrivals-arrows">
-                <button type="button" className="arr-arrow" onClick={() => scroll('left')} aria-label="Previous">←</button>
-                <button type="button" className="arr-arrow" onClick={() => scroll('right')} aria-label="Next">→</button>
+                <button
+                  type="button"
+                  className="arr-arrow"
+                  onClick={() => scroll('left')}
+                  aria-label="Previous"
+                >
+                  ←
+                </button>
+                <button
+                  type="button"
+                  className="arr-arrow"
+                  onClick={() => scroll('right')}
+                  aria-label="Next"
+                >
+                  →
+                </button>
               </div>
             </div>
           </div>

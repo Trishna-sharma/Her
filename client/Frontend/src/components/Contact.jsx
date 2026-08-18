@@ -39,7 +39,7 @@ export default function ContactPage({ onNavigate, activePage, onLoginClick, auth
     event.preventDefault();
 
     const message = [
-      'Hello Her by Mou,',
+      'Hello Bella,',
       '',
       `Name: ${form.name || '-'}`,
       `Email: ${form.email || '-'}`,
@@ -83,7 +83,7 @@ export default function ContactPage({ onNavigate, activePage, onLoginClick, auth
             <button
               type="button"
               className="secondary-button contact-whatsapp-button"
-              onClick={() => openWhatsApp('Hello Her by Mou, I want to place an order via WhatsApp.')}
+              onClick={() => openWhatsApp('Hello Bella, I want to place an order via WhatsApp.')}
             >
               Chat now
             </button>

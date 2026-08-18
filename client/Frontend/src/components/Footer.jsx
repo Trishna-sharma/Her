@@ -55,7 +55,7 @@ export default function Footer({ onNavigate }) {
           <button
             type="button"
             className="footer-whatsapp-button"
-            onClick={() => openWhatsApp('Hello Her by Mou, I want help choosing an outfit.')}
+            onClick={() => openWhatsApp('Hello Bella, I want help with my choices.')}
           >
             <span className="footer-whatsapp-icon" aria-hidden="true">
               <WhatsAppIcon />
@@ -67,8 +67,8 @@ export default function Footer({ onNavigate }) {
       </div>
 
       <div className="site-footer-bottom">
-        <p>© {year} Her by Mou. All rights reserved.</p>
-        <p>Crafted with style in Bangladesh.</p>
+        <p>© {year} Bella. All rights reserved.</p>
+        <p>Skincare at your doorstep.</p>
       </div>
     </footer>
   );

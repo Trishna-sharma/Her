@@ -200,7 +200,7 @@ export default function CategoryDetail({
 
   const orderMessage = (item, rowTitle) => (
     [
-      'Hello Her by Mou,',
+      'Hello Bella,',
       '',
       `I want to order this item: ${item.name}`,
       `Category: ${category}`,
