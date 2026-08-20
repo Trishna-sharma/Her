@@ -10,18 +10,20 @@ import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import nodemailer from 'nodemailer';
 
+import ActiveSession from './models/ActiveSession.js';
+import ActivityLog from './models/ActivityLog.js';
 import User from './user.js';
 import cloudinary from './cloudinary.js';
 
-// Load environment variables locally
+// --- ENVIRONMENT & APP INITIALIZATION ---
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
 dotenv.config({ path: path.join(__dirname, 'backend.env') });
 
 const app = express();
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
+// --- MULTER CONFIGURATION ---
 const uploadImage = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 },
@@ -35,7 +37,7 @@ const uploadImage = multer({
   },
 });
 
-// Middleware
+// --- MIDDLEWARE ---
 app.use(express.json());
 
 // CORS Setup
@@ -62,7 +64,6 @@ app.use(cors({
 }));
 
 // --- EMAIL NORMALIZATION HELPER ---
-// Converts: "trishnasharma.2.0.0.2+alias@gmail.com" -> "trishnasharma2002@gmail.com"
 const normalizeEmail = (rawEmail) => {
   if (!rawEmail || typeof rawEmail !== 'string') return '';
   
@@ -73,20 +74,18 @@ const normalizeEmail = (rawEmail) => {
 
   let [local, domain] = parts;
 
-  // Handle Gmail / Googlemail dot and plus alias removal
   if (domain === 'gmail.com' || domain === 'googlemail.com') {
-    local = local.replace(/\./g, '');       // Remove all dots
-    local = local.split('+')[0];             // Remove everything after '+'
+    local = local.replace(/\./g, '');
+    local = local.split('+')[0];
     domain = 'gmail.com';
   } else {
-    // For other domains, only remove plus aliases
     local = local.split('+')[0];
   }
 
   return `${local}@${domain}`;
 };
 
-// --- SERVERLESS MONGODB CONNECTION CACHING ---
+// --- MONGODB CONNECTION CACHING ---
 let cached = global.mongoose;
 
 if (!cached) {
@@ -139,7 +138,7 @@ const transporter = nodemailer.createTransport({
 const sendOtpEmail = async (email, otp) => {
   await transporter.sendMail({
     from: `"HER" <${process.env.EMAIL_USER}>`,
-    to: email, // Sends to the exact address typed by user
+    to: email,
     subject: 'Your Account Verification Code',
     html: `
       <div style="font-family: Arial, sans-serif; padding: 20px;">
@@ -152,63 +151,94 @@ const sendOtpEmail = async (email, otp) => {
   });
 };
 
+function generateOrderCode() {
+  return 'ORD-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).slice(2, 6).toUpperCase();
+}
+
+// --- AUTH MIDDLEWARE ---
+async function attachUserIfPresent(req, _res, next) {
+  const authHeader = req.headers.authorization || '';
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  if (!token) return next();
+
+  try {
+    const payload = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+    req.userId = payload.id;
+    req.userEmail = payload.email;
+  } catch {
+    // Guest fallback
+  }
+  next();
+}
+
+function requireAuth(req, res, next) {
+  if (!req.userId) {
+    return res.status(401).json({ message: 'Authentication required.' });
+  }
+  next();
+}
+
+function requireAdmin(req, res, next) {
+  const adminEmails = ['mou@bella.com', 'huma@bella.com'];
+  if (!req.userEmail || !adminEmails.includes(req.userEmail)) {
+    return res.status(403).json({ message: 'Admin access required.' });
+  }
+  next();
+}
+
 // --- ROUTES ---
 
-// --- LIVE TRACKING & MONITORING ---
-// In-memory tracker store
-const activeSessions = new Map();
-
-// Helper to clean up inactive users (older than 30 seconds)
-const cleanInactiveSessions = () => {
-  const now = Date.now();
-  for (const [key, session] of activeSessions.entries()) {
-    if (now - session.lastSeen > 30000) {
-      activeSessions.delete(key);
+// 1. Live Tracking & Monitoring
+app.post('/api/auth/heartbeat', async (req, res) => {
+  try {
+    await connectDB();
+    const { sessionId, role, page, email, userAgent } = req.body;
+    if (!sessionId) {
+      return res.status(400).json({ message: 'Session ID is required' });
     }
+
+    await ActiveSession.findOneAndUpdate(
+      { sessionId },
+      {
+        sessionId,
+        role: role || 'guest',
+        page: page || 'welcome',
+        email: email || 'Guest',
+        userAgent: userAgent || req.headers['user-agent'],
+        lastSeen: new Date(),
+      },
+      { upsert: true }
+    );
+
+    return res.status(200).json({ status: 'ok' });
+  } catch (error) {
+    console.error('Heartbeat Error:', error);
+    return res.status(500).json({ message: 'Heartbeat failed.' });
   }
-};
-
-// User Heartbeat Ping Endpoint
-app.post('/api/auth/heartbeat', (req, res) => {
-  const { sessionId, role, page, email, userAgent } = req.body;
-  if (!sessionId) {
-    return res.status(400).json({ message: 'Session ID is required' });
-  }
-
-  activeSessions.set(sessionId, {
-    sessionId,
-    role: role || 'guest',
-    page: page || 'welcome',
-    email: email || 'Guest',
-    userAgent: userAgent || req.headers['user-agent'],
-    ip: req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress,
-    lastSeen: Date.now(),
-  });
-
-  return res.status(200).json({ status: 'ok' });
 });
 
-// Admin Dashboard Tracker Endpoint
-app.get('/api/admin/monitoring-dashboard', (req, res) => {
-  cleanInactiveSessions();
-  const sessions = Array.from(activeSessions.values());
+app.get('/api/admin/monitoring-dashboard', async (req, res) => {
+  try {
+    await connectDB();
+    const cutoff = new Date(Date.now() - 30 * 1000); // active in last 30s
 
-  const activeUsersCount = sessions.length;
-  const adminCount = sessions.filter((s) => s.role === 'admin').length;
-  const guestCount = sessions.filter((s) => s.role === 'guest').length;
-  const userCount = sessions.filter((s) => s.role === 'user').length;
+    const sessions = await ActiveSession.find({ lastSeen: { $gte: cutoff } }).lean();
 
-  return res.json({
-    summary: {
-      totalActive: activeUsersCount,
-      admins: adminCount,
-      registeredUsers: userCount,
-      guests: guestCount,
-    },
-    activeSessions: sessions,
-  });
+    const summary = {
+      totalActive: sessions.length,
+      admins: sessions.filter((s) => s.role === 'admin').length,
+      registeredUsers: sessions.filter((s) => s.role === 'user').length,
+      guests: sessions.filter((s) => s.role === 'guest').length,
+    };
+
+    return res.json({ summary, activeSessions: sessions });
+  } catch (error) {
+    console.error('Monitoring Dashboard Error:', error);
+    return res.status(500).json({ message: 'Failed to fetch monitoring data.' });
+  }
 });
 
+// 2. Cloudinary Upload Routes
 app.get('/api/uploads/cloudinary-signature', (req, res) => {
   const timestamp = Math.round(Date.now() / 1000);
   const folder = 'her-by-mou/items';
@@ -271,7 +301,7 @@ app.post('/api/uploads/image', (req, res) => {
   });
 });
 
-// 1. Manual Login Route
+// 3. Authentication Routes
 app.post('/api/auth/login', async (req, res) => {
   try {
     await connectDB();
@@ -284,7 +314,6 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(400).json({ message: 'Email and password are required.' });
     }
 
-    // Search by normalized email or exact email
     const user = await User.findOne({
       $or: [{ email: normalized }, { email: String(email).trim().toLowerCase() }]
     });
@@ -306,7 +335,6 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
-// 2. Google OAuth Route
 app.post('/api/auth/google', async (req, res) => {
   try {
     await connectDB();
@@ -335,7 +363,7 @@ app.post('/api/auth/google', async (req, res) => {
     if (!user) {
       user = new User({
         googleId,
-        email: normalized, // Save as normalized email
+        email: normalized,
         name,
         picture,
         isGoogleUser: true,
@@ -369,7 +397,6 @@ app.post('/api/auth/google', async (req, res) => {
   }
 });
 
-// 3. Send OTP Route (WITH GMAIL / ALIAS DUPLICATE CHECK)
 app.post('/api/auth/send-otp', async (req, res) => {
   try {
     await connectDB();
@@ -382,12 +409,10 @@ app.post('/api/auth/send-otp', async (req, res) => {
       return res.status(400).json({ message: 'Email is required.' });
     }
 
-    // Query both raw email and normalized email
     const existingUser = await User.findOne({
       $or: [{ email: normalized }, { email: rawEmail }]
     });
 
-    // Reject request if ANY matching account exists
     if (existingUser) {
       if (existingUser.isVerified || existingUser.passwordHash || existingUser.googleId) {
         return res.status(400).json({
@@ -396,9 +421,8 @@ app.post('/api/auth/send-otp', async (req, res) => {
       }
     }
 
-    // Generate 6-digit random OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
+    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
     let user = existingUser;
     if (!user) {
@@ -409,7 +433,6 @@ app.post('/api/auth/send-otp', async (req, res) => {
     user.otpExpiresAt = otpExpiresAt;
     await user.save();
 
-    // Send to the exact raw address typed in the UI so the user receives it
     await sendOtpEmail(rawEmail, otp);
 
     return res.status(200).json({ message: 'OTP sent successfully to your email!' });
@@ -419,7 +442,6 @@ app.post('/api/auth/send-otp', async (req, res) => {
   }
 });
 
-// 4. Verify OTP Route
 app.post('/api/auth/verify-otp', async (req, res) => {
   try {
     await connectDB();
@@ -460,7 +482,145 @@ app.post('/api/auth/verify-otp', async (req, res) => {
   }
 });
 
-// Start Server locally if not running on Vercel
+// 4. Order Management Routes
+app.post('/api/orders', attachUserIfPresent, async (req, res) => {
+  try {
+    await connectDB();
+    const { items = [], subtotal = 0 } = req.body;
+
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ message: 'Order must include at least one item.' });
+    }
+
+    const order = await Order.create({
+      orderCode: generateOrderCode(),
+      customerEmail: req.userEmail || null,
+      customerName: req.userEmail ? req.userEmail.split('@')[0] : null,
+      userId: req.userId || null,
+      items,
+      subtotal,
+      status: 'pending',
+    });
+
+    return res.status(201).json({ order });
+  } catch (error) {
+    console.error('Create Order Error:', error);
+    return res.status(500).json({ message: 'Failed to create order.', error: error.message });
+  }
+});
+
+app.get('/api/orders/mine', attachUserIfPresent, requireAuth, async (req, res) => {
+  try {
+    await connectDB();
+    const orders = await Order.find({ customerEmail: req.userEmail })
+      .sort({ createdAt: -1 })
+      .lean();
+    return res.json({ orders });
+  } catch (error) {
+    console.error('Get My Orders Error:', error);
+    return res.status(500).json({ message: 'Failed to load orders.' });
+  }
+});
+
+app.get('/api/orders', attachUserIfPresent, requireAdmin, async (req, res) => {
+  try {
+    await connectDB();
+    const orders = await Order.find({ isArchived: false }).sort({ createdAt: -1 }).lean();
+    return res.json({ orders });
+  } catch (error) {
+    console.error('List Orders Error:', error);
+    return res.status(500).json({ message: 'Failed to load orders.' });
+  }
+});
+
+app.patch('/api/orders/:orderCode/status', attachUserIfPresent, requireAdmin, async (req, res) => {
+  try {
+    await connectDB();
+    const { status, statusNote } = req.body;
+    const order = await Order.findOneAndUpdate(
+      { orderCode: req.params.orderCode },
+      { status, statusNote: statusNote || '' },
+      { new: true }
+    );
+    if (!order) return res.status(404).json({ message: 'Order not found.' });
+    return res.json({ order });
+  } catch (error) {
+    console.error('Update Order Status Error:', error);
+    return res.status(500).json({ message: 'Failed to update order.' });
+  }
+});
+
+app.patch('/api/orders/:orderCode/archive', attachUserIfPresent, requireAdmin, async (req, res) => {
+  try {
+    await connectDB();
+    const order = await Order.findOneAndUpdate(
+      { orderCode: req.params.orderCode },
+      { isArchived: true },
+      { new: true }
+    );
+    if (!order) return res.status(404).json({ message: 'Order not found.' });
+    return res.json({ order });
+  } catch (error) {
+    console.error('Archive Order Error:', error);
+    return res.status(500).json({ message: 'Failed to archive order.' });
+  }
+});
+
+app.patch('/api/orders/:orderCode/rate', attachUserIfPresent, requireAuth, async (req, res) => {
+  try {
+    await connectDB();
+    const { cartId, rating } = req.body;
+    const order = await Order.findOne({ orderCode: req.params.orderCode, customerEmail: req.userEmail });
+    if (!order) return res.status(404).json({ message: 'Order not found.' });
+    if (order.status !== 'delivered') {
+      return res.status(400).json({ message: 'Order must be delivered before rating.' });
+    }
+
+    const item = order.items.find((i) => i.cartId === cartId);
+    if (!item) return res.status(404).json({ message: 'Item not found in order.' });
+
+    item.userRating = Number(rating);
+    await order.save();
+
+    return res.json({ order });
+  } catch (error) {
+    console.error('Rate Order Item Error:', error);
+    return res.status(500).json({ message: 'Failed to submit rating.' });
+  }
+});
+
+app.get('/api/orders/ratings-summary', async (req, res) => {
+  try {
+    await connectDB();
+    const orders = await Order.find({ 'items.userRating': { $ne: null } }).lean();
+
+    const summary = {};
+    orders.forEach((order) => {
+      order.items.forEach((item) => {
+        if (item.userRating === null || item.userRating === undefined) return;
+        const key = [item.category, item.section, item.rowTitle, item.name]
+          .map((v) => String(v || '').trim().toLowerCase())
+          .join('::');
+
+        if (!summary[key]) summary[key] = { total: 0, count: 0 };
+        summary[key].total += item.userRating;
+        summary[key].count += 1;
+      });
+    });
+
+    const finalSummary = {};
+    Object.entries(summary).forEach(([key, { total, count }]) => {
+      finalSummary[key] = { rating: total / count, reviews: count };
+    });
+
+    return res.json({ summary: finalSummary });
+  } catch (error) {
+    console.error('Ratings Summary Error:', error);
+    return res.status(500).json({ message: 'Failed to load ratings summary.' });
+  }
+});
+
+// --- SERVER EXECUTION ---
 if (process.env.NODE_ENV !== 'production') {
   const PORT = process.env.PORT || 5000;
   app.listen(PORT, () => {
