@@ -2,11 +2,9 @@
 import Navigation from './Navigation.jsx';
 import AuthStatusButton from './AuthStatusButton.jsx';
 import { createOrderFromItems } from '../data/orderStore.js';
+import { getNewArrivals } from '../data/catalogAdminStore.js';
 
-const WHATSAPP_NUMBER = '8801853314954';
-
-const arrivals = [
-  {
+const fallbackArrivals = [  {
     id: 'arr-1',
     name: 'Minimal Ivory Lehenga',
     price: '$219',
@@ -37,8 +35,10 @@ const arrivals = [
     img: '/new-arrival(1).jpg',
     category: 'Clothing',
     section: 'Lehengas',
-  },
-];
+  },];
+
+const WHATSAPP_NUMBER = '8801853314954';
+
 
 function openWhatsApp(message) {
   const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
@@ -132,7 +132,11 @@ export default function CategoryPage({
       'Quantity: 1',
     ].join('\n');
 
+  const dynamicArrivals = getNewArrivals(8);
+  const arrivals = dynamicArrivals.length ? dynamicArrivals : fallbackArrivals;
+
   return (
+      
     <div className="category-page">
       <header className="page-top-nav">
         <button

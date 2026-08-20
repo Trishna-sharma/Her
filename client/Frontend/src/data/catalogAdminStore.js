@@ -4,6 +4,8 @@ const ADMIN_ITEMS_KEY = 'herby-admin-items';
 const DELETED_CATALOGUE_ITEMS_KEY = 'herby-deleted-catalogue-items';
 const CATALOGUE_OVERRIDES_KEY = 'herby-catalogue-overrides';
 const CATEGORY_VISIBILITY_KEY = 'herby-category-visibility';
+const CUSTOM_CATEGORIES_KEY = 'herby-custom-categories';
+const CUSTOM_SECTIONS_KEY = 'herby-custom-sections';
 
 export function getCategoryVisibilitySettings() {
   return readStorage(CATEGORY_VISIBILITY_KEY, null);
@@ -54,6 +56,125 @@ function writeStorage(key, value) {
 
 function normalizeText(value) {
   return String(value || '').trim().toLowerCase();
+}
+
+
+export function getCustomCategories() {
+  return readStorage(CUSTOM_CATEGORIES_KEY, []); // [{ name, isPublic, createdAt }]
+}
+
+export function addCustomCategory(name, isPublic = true) {
+  const trimmed = String(name || '').trim();
+  if (!trimmed) return;
+  const existing = getCustomCategories();
+  if (existing.some((c) => normalizeText(c.name) === normalizeText(trimmed))) return;
+  writeStorage(CUSTOM_CATEGORIES_KEY, [
+    ...existing,
+    { name: trimmed, isPublic, createdAt: Date.now() },
+  ]);
+}
+
+export function removeCustomCategory(name) {
+  const existing = getCustomCategories();
+  writeStorage(
+    CUSTOM_CATEGORIES_KEY,
+    existing.filter((c) => normalizeText(c.name) !== normalizeText(name))
+  );
+}
+
+export function setCustomCategoryVisibility(name, isPublic) {
+  const existing = getCustomCategories();
+  writeStorage(
+    CUSTOM_CATEGORIES_KEY,
+    existing.map((c) => (normalizeText(c.name) === normalizeText(name) ? { ...c, isPublic } : c))
+  );
+}
+
+export function toggleCustomCategoryVisibility(name) {
+  const target = getCustomCategories().find((c) => normalizeText(c.name) === normalizeText(name));
+  if (!target) return;
+  setCustomCategoryVisibility(name, !target.isPublic);
+}
+
+export function getAllCategoryNames() {
+  const builtIn = Object.keys(categoryData);
+  const custom = getCustomCategories().map((c) => c.name);
+  return [...builtIn, ...custom.filter((name) => !builtIn.includes(name))];
+}
+
+function readCustomSectionsMap() {
+  try {
+    const raw = window.localStorage.getItem(CUSTOM_SECTIONS_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeCustomSectionsMap(map) {
+  window.localStorage.setItem(CUSTOM_SECTIONS_KEY, JSON.stringify(map));
+}
+
+export function getCustomSections(category) {
+  const map = readCustomSectionsMap();
+  return map[category] || [];
+}
+
+export function addCustomSection(category, { name, img, price }) {
+  const trimmedName = String(name || '').trim();
+  if (!category || !trimmedName) return;
+  const map = readCustomSectionsMap();
+  const list = map[category] || [];
+  if (list.some((s) => normalizeText(s.name) === normalizeText(trimmedName))) return;
+  map[category] = [
+    ...list,
+    {
+      id: `custom-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      name: trimmedName,
+      img: getItemImage({ img }),
+      price: price || '$0',
+      createdAt: Date.now(),
+      isCustomSection: true,
+    },
+  ];
+  writeCustomSectionsMap(map);
+}
+
+export function removeCustomSection(category, sectionName) {
+  const map = readCustomSectionsMap();
+  const list = map[category] || [];
+  map[category] = list.filter((s) => normalizeText(s.name) !== normalizeText(sectionName));
+  writeCustomSectionsMap(map);
+}
+
+// Folders shown in the Gallery arc carousel = built-in + custom subcategories
+export function getCategoryFolders(category) {
+  const base = categoryData[category] || [];
+  const custom = getCustomSections(category).map((s) => ({
+    id: s.id,
+    name: s.name,
+    img: getItemImage(s),
+    price: s.price || '$0',
+  }));
+  const existingNames = new Set(base.map((b) => b.name));
+  return [...base, ...custom.filter((c) => !existingNames.has(c.name))];
+}
+
+// Newest admin-added products, for the "New Arrivals" strip
+export function getNewArrivals(limit = 8) {
+  return getAdminItems() // already newest-first (unshift on add)
+    .slice(0, limit)
+    .map((item) => ({
+      id: item.id,
+      name: item.name,
+      price: item.price,
+      img: getItemImage(item),
+      category: item.category,
+      section: item.section || 'Admin Picks',
+      subSection: item.subSection || 'Everyday Edit',
+    }));
 }
 
 function parsePrice(value) {
@@ -244,25 +365,24 @@ export function mergeAdminItemsIntoSections(baseSections, category) {
 
 export function getSectionsForCategory(category) {
   const configured = categoryDetailSections[category];
-  if (configured) {
-    return mergeAdminItemsIntoSections(configured, category);
-  }
+  const base = configured
+    ? { ...configured }
+    : (categoryData[category] || []).reduce((acc, item, idx) => {
+        acc[item.name] = [
+          { id: idx + 1, name: item.name, price: item.price, img: getItemImage(item) },
+        ];
+        return acc;
+      }, {});
 
-  const fallbackItems = categoryData[category] || [];
-  const fallbackSections = fallbackItems.reduce((acc, item, idx) => {
-    acc[item.name] = [
-      {
-        id: idx + 1,
-        name: item.name,
-        price: item.price,
-        img: getItemImage(item),
-      },
-    ];
-    return acc;
-  }, {});
+  getCustomSections(category).forEach((section) => {
+    if (!base[section.name]) {
+      base[section.name] = [];
+    }
+  });
 
-  return mergeAdminItemsIntoSections(fallbackSections, category);
+  return mergeAdminItemsIntoSections(base, category);
 }
+
 
 export function getCatalogueRowsForSection(category, sectionName) {
   const sections = getSectionsForCategory(category);

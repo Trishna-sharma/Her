@@ -10,6 +10,8 @@ import { initialCategoryConfig } from './data/categoryData.js';
 import {
   getCategoryVisibilitySettings,
   saveCategoryVisibilitySettings,
+  getCustomCategories,
+  toggleCustomCategoryVisibility,
 } from './data/catalogAdminStore.js';
 
 const AUTH_SESSION_KEY = 'herby-auth-session';
@@ -40,24 +42,36 @@ export default function App() {
   const [uiToast, setUiToast] = useState(null);
   const toastTimerRef = useRef(null);
 
-  // Derive public categories for customer-facing views
-  const visibleCategories = categoryConfig
-    .filter((cat) => cat.isPublic)
-    .map((cat) => cat.name);
+ const customCategories = getCustomCategories();
+const mergedCategoryConfig = [
+  ...categoryConfig,
+  ...customCategories
+    .filter((c) => !categoryConfig.some((existing) => existing.name === c.name))
+    .map((c) => ({ name: c.name, isPublic: c.isPublic, isCustom: true })),
+];
 
-  // Derive all category names for Admin components
-  const allCategories = categoryConfig.map((cat) => cat.name);
+const visibleCategories = mergedCategoryConfig.filter((cat) => cat.isPublic).map((cat) => cat.name);
+const allCategories = mergedCategoryConfig.map((cat) => cat.name);
 
   useEffect(() => {
     saveCategoryVisibilitySettings(categoryConfig);
   }, [categoryConfig]);
 
   const toggleCategoryVisibility = (categoryName) => {
-    setCategoryConfig((prev) =>
-      prev.map((cat) =>
-        cat.name === categoryName ? { ...cat, isPublic: !cat.isPublic } : cat
-      )
-    );
+  const isCustom = customCategories.some((c) => c.name === categoryName);
+  if (isCustom) {
+    toggleCustomCategoryVisibility(categoryName);
+    setCategoryConfig((prev) => [...prev]); // force re-render so merged list refreshes
+    return;
+  }
+  setCategoryConfig((prev) =>
+    prev.map((cat) =>
+      cat.name === categoryName ? { ...cat, isPublic: !cat.isPublic } : cat
+    )
+  );
+};
+
+const bumpCategoriesRefresh = () => setCategoryConfig((prev) => [...prev]);
   };
 
   const showUiToast = (message, tone = 'success') => {
@@ -384,9 +398,9 @@ useEffect(() => {
         categoryConfig={categoryConfig}
         allCategories={allCategories}
         onToggleCategoryVisibility={toggleCategoryVisibility}
+        onCategoriesChanged={bumpCategoriesRefresh}
       />
     );
   }
 
   return null;
-}
