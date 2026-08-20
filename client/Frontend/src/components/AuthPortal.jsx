@@ -24,8 +24,6 @@ import {
   getAllCategoryNames,
 } from '../data/catalogAdminStore.js';
 
-onToggleCategoryVisibility={toggleCategoryVisibility}
-onCategoriesChanged={bumpCategoriesRefresh}
 
 function normalizeEmail(value) {
   return String(value || '').trim().toLowerCase();

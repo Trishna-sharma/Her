@@ -145,7 +145,7 @@ export default function Gallery({
   const [currentCategory, setCurrentCategory] = useState(selectedCategory || categories[0]);
 
   useEffect(() => {
-    if (selectedCategory && categoryData[selectedCategory]) {
+    if (selectedCategory && getCategoryFolders[selectedCategory]) {
       setCurrentCategory(selectedCategory);
     }
   }, [selectedCategory]);
