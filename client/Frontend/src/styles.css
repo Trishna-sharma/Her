@@ -651,6 +651,10 @@ button {
   align-items: start;
 }
 
+.category-page-content > * {
+  min-width: 0;
+}
+
 .new-arrivals-highlight {
   margin: 0 0 1.7rem;
   background: rgba(255, 255, 255, 0.84);
@@ -684,6 +688,7 @@ button {
   scrollbar-width: none; /* Hide scrollbar for clean UI */
   padding: 0.5rem 0.25rem 1rem 0.25rem; /* Prevents card shadows from being cut off */
   width: 100%;
+  min-width: 0;
 }
 
 .new-arrivals-track::-webkit-scrollbar {
@@ -864,6 +869,7 @@ button {
   box-shadow: 0 40px 90px rgba(125, 86, 157, 0.12);
   position: relative;
   overflow: visible;
+  min-width: 0;
 }
 
 .category-hero::before {
@@ -925,6 +931,7 @@ button {
   align-items: flex-start;
   gap: 1rem;
   width: 100%;
+  min-width: 0;
 }
 
 /* Image box */
@@ -1126,6 +1133,7 @@ button {
     padding: 1.5rem;
     border-radius: 24px;
     gap: 1.5rem;
+    min-width: 0;
   }
 
   .hero-actions {
