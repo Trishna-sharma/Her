@@ -71,8 +71,8 @@ const allCategories = mergedCategoryConfig.map((cat) => cat.name);
   );
 };
 
-const bumpCategoriesRefresh = () => setCategoryConfig((prev) => [...prev]);
-  };
+  const bumpCategoriesRefresh = () => setCategoryConfig((prev) => [...prev]);
+  
 
   const showUiToast = (message, tone = 'success') => {
     setUiToast({ message, tone });
@@ -400,7 +400,9 @@ useEffect(() => {
         onToggleCategoryVisibility={toggleCategoryVisibility}
         onCategoriesChanged={bumpCategoriesRefresh}
       />
-    );
+  );
   }
+  
 
   return null;
+  }
