@@ -121,8 +121,8 @@ async function connectDB() {
 }
 
 // --- HELPER FUNCTIONS ---
-const issueToken = (user) => jwt.sign(
-  { id: user._id, email: user.email },
+const issueToken = (user, role = 'user') => jwt.sign(
+  { id: user._id || null, email: user.email, role },
   process.env.JWT_SECRET || 'secret',
   { expiresIn: '7d' }
 );
@@ -163,28 +163,29 @@ async function attachUserIfPresent(req, _res, next) {
 
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET || 'secret');
-    req.userId = payload.id;
+    req.userId = payload.id || null;
     req.userEmail = payload.email;
+    req.userRole = payload.role || 'user';
   } catch {
-    // Guest fallback
+    // invalid/expired token — treat as guest, don't block
   }
   next();
 }
 
 function requireAuth(req, res, next) {
-  if (!req.userId) {
+  if (!req.userEmail) {
     return res.status(401).json({ message: 'Authentication required.' });
   }
   next();
 }
 
 function requireAdmin(req, res, next) {
-  const adminEmails = ['mou@bella.com', 'huma@bella.com'];
-  if (!req.userEmail || !adminEmails.includes(req.userEmail)) {
+  if (req.userRole !== 'admin') {
     return res.status(403).json({ message: 'Admin access required.' });
   }
   next();
 }
+
 
 // --- ROUTES ---
 
@@ -333,6 +334,25 @@ app.post('/api/auth/login', async (req, res) => {
     console.error('Login Error:', error);
     return res.status(500).json({ message: 'Login failed.', error: error.message });
   }
+});
+
+// Admin login — credentials live server-side only, never in frontend code
+app.post('/api/auth/admin-login', async (req, res) => {
+  const { email, password } = req.body;
+  const normalized = String(email || '').trim().toLowerCase();
+  const safePassword = String(password || '');
+
+  const adminCredentials = {
+    'mou@bella.com': process.env.ADMIN_PASSWORD_MOU || 'MouPassword123!',
+    'huma@bella.com': process.env.ADMIN_PASSWORD_HUMA || 'HumaPassword456!',
+  };
+
+  if (!adminCredentials[normalized] || adminCredentials[normalized] !== safePassword) {
+    return res.status(401).json({ message: 'Invalid admin credentials.' });
+  }
+
+  const token = issueToken({ email: normalized }, 'admin');
+  return res.json({ token, user: { email: normalized, name: 'Admin', role: 'admin' } });
 });
 
 app.post('/api/auth/google', async (req, res) => {

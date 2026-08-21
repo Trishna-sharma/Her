@@ -358,36 +358,36 @@ const handleDeleteSection = (category, name) => {
   showToast(`Subcategory "${name}" removed.`, 'neutral');
 };
 
-  const handleAdminAuth = async () => {
-    if (hasActiveSession && !isAdminLoggedIn) {
-      setNotice('Logout current user first, then login as admin.');
-      return;
-    }
+ const handleAdminAuth = async () => {
+  if (hasActiveSession && !isAdminLoggedIn) {
+    setNotice('Logout current user first, then login as admin.');
+    return;
+  }
 
-    const email = normalizeEmail(adminForm.email);
-    const password = adminForm.password;
+  const email = normalizeEmail(adminForm.email);
+  const password = adminForm.password;
 
-    if (!email || !password) {
-      setNotice('Enter admin email and password.');
-      return;
-    }
+  if (!email || !password) {
+    setNotice('Enter admin email and password.');
+    return;
+  }
 
-    const adminCredentials = {
-      'mou@bella.com': 'MouPassword123!',
-      'huma@bella.com': 'HumaPassword456!',
-    };
+  try {
+    const rawBase = import.meta.env.VITE_API_URL || 'https://bella-liliac-backend.vercel.app/';
+    const apiBase = rawBase.replace(/\/+$/, '');
 
-    if (adminCredentials[email] && adminCredentials[email] === password) {
-      onAuthChange({
-        role: 'admin',
-        email: email,
-        name: 'Admin',
-        token: 'local-mock-admin-token',
-      });
-      setNotice('');
-      showToast('Logged in successfully (Local).', 'success');
-      return;
-    }
+    const response = await axios.post(`${apiBase}/api/auth/admin-login`, { email, password });
+    const { token, user } = response.data;
+
+    onAuthChange({ role: 'admin', email: user.email, name: user.name || 'Admin', token });
+    setNotice('');
+    showToast('Logged in successfully.', 'success');
+  } catch (error) {
+    const backendMessage = error?.response?.data?.message;
+    setNotice(backendMessage || 'Invalid admin credentials.');
+     }
+   
+    
 
     try {
       const rawBase = import.meta.env.VITE_API_URL || 'https://bella-liliac-backend.vercel.app/';
