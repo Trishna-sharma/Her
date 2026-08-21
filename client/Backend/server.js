@@ -343,8 +343,8 @@ app.post('/api/auth/admin-login', async (req, res) => {
   const safePassword = String(password || '');
 
   const adminCredentials = {
-    'mou@bella.com': process.env.ADMIN_PASSWORD_MOU || 'MouPassword123!',
-    'huma@bella.com': process.env.ADMIN_PASSWORD_HUMA || 'HumaPassword456!',
+    'mou@bella.com': process.env.ADMIN_PASSWORD_MOU || '12121212',
+    'huma@bella.com': process.env.ADMIN_PASSWORD_HUMA || '12121212',
   };
 
   if (!adminCredentials[normalized] || adminCredentials[normalized] !== safePassword) {
