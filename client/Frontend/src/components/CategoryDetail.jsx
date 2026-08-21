@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Navigation from './Navigation.jsx';
-import { categoryData } from '../data/categoryData.js';
 import AuthStatusButton from './AuthStatusButton.jsx';
 import {
   applyCatalogueItemState,
@@ -8,30 +7,21 @@ import {
   getSectionsForCategory,
   markCatalogueItemDeleted,
 } from '../data/catalogAdminStore.js';
-import {
-  buildProductKey,
-  createOrderFromItems,
-  fetchRatingsSummary,
-  getProductReviewStats,
-} from '../data/orderStore.js';
 
 const WHATSAPP_NUMBER = '8801853314954';
 
-function buildProductDetails(item, rowTitle, category, section) {
+function buildProductDetails(item, rowTitle) {
   const nameSeed = item.name.length;
   const parsedRating = Number.parseFloat(item.rating);
   const parsedStock = item.stock !== undefined && item.stock !== null && String(item.stock).trim() !== ''
     ? Number.parseInt(item.stock, 10)
     : null;
-  const liveReview = getProductReviewStats(
-    buildProductKey({ category, section, rowTitle, name: item.name })
-  );
 
   return {
     ...item,
     rowTitle,
-    rating: liveReview?.rating || (Number.isFinite(parsedRating) && parsedRating > 0 ? parsedRating : (4 + (nameSeed % 8) / 10)),
-    reviews: liveReview?.reviews || item.reviews || 80 + nameSeed * 3,
+    rating: Number.isFinite(parsedRating) && parsedRating > 0 ? parsedRating : (4 + (nameSeed % 8) / 10),
+    reviews: item.reviews || 80 + nameSeed * 3,
     description:
       (item.description && item.description.trim()) ||
       `${item.name} is available now — reach out for full details on this item.`,
@@ -77,16 +67,6 @@ export default function CategoryDetail({
   const [catalogueVersion, setCatalogueVersion] = useState(0);
   const canManageCatalogue = authSession?.role === 'admin';
 
-  // Ratings now live on the backend (aggregated from real order data).
-  // Fetch once on mount so getProductReviewStats() has something to read;
-  // bumping catalogueVersion afterwards forces a re-render so ratings
-  // that arrive after the initial paint still show up.
-  useEffect(() => {
-    fetchRatingsSummary().then(() => {
-      setCatalogueVersion((value) => value + 1);
-    });
-  }, []);
-
   const sections = useMemo(() => {
     return getSectionsForCategory(category);
   }, [category, catalogueVersion]);
@@ -99,8 +79,6 @@ export default function CategoryDetail({
       setActiveSection(selectedSection);
       return;
     }
-
-    // Only reset if current activeSection no longer exists
     if (!sections[activeSection]) {
       setActiveSection(sectionNames[0] || '');
     }
@@ -117,12 +95,7 @@ export default function CategoryDetail({
         ...row,
         items: row.items
           .map((item) => applyCatalogueItemState(
-            {
-              category,
-              section: activeSection,
-              rowTitle: row.title,
-              name: item.name,
-            },
+            { category, section: activeSection, rowTitle: row.title, name: item.name },
             item
           ))
           .filter((item) => !item.isDeleted),
@@ -154,7 +127,6 @@ export default function CategoryDetail({
     const itemId = `${category}__${activeSection}__${rowTitle}__${item.name}`;
     const safeColor = color || 'Default';
     const safeSize = size || 'Default';
-
     return {
       itemId,
       cartId: `${itemId}__${safeColor}__${safeSize}`,
@@ -171,7 +143,7 @@ export default function CategoryDetail({
   };
 
   const openProduct = (item, rowTitle) => {
-    const built = buildProductDetails(item, rowTitle, category, activeSection);
+    const built = buildProductDetails(item, rowTitle);
     setSelectedProduct(built);
     setSelectedImageIndex(0);
     setSelectedColor(built.colors[0] || 'Default');
@@ -184,17 +156,12 @@ export default function CategoryDetail({
     if (!canManageCatalogue) return;
 
     markCatalogueItemDeleted(item.__catalogMeta || {
-      category,
-      section: activeSection,
-      rowTitle,
-      name: item.name,
+      category, section: activeSection, rowTitle, name: item.name,
     });
 
     if (selectedProduct?.name === item.name && selectedProduct?.rowTitle === rowTitle) {
       setSelectedProduct(null);
     }
-
-    // Refresh catalogue but preserve active section
     setCatalogueVersion((value) => value + 1);
   };
 
@@ -215,24 +182,7 @@ export default function CategoryDetail({
     ].join('\n')
   );
 
-  const sendModalWhatsAppOrder = async () => {
-    const payload = createItemPayload(
-      selectedProduct,
-      selectedProduct.rowTitle,
-      selectedColor,
-      selectedSize,
-      quantity
-    );
-
-    try {
-      await createOrderFromItems({
-        items: [payload],
-        authSession,
-        subtotal: Number.parseInt(String(selectedProduct.price).replace(/[^0-9]/g, ''), 10) * quantity || 0,
-      });
-    } catch (error) {
-      console.error('Failed to create order before WhatsApp handoff:', error);
-    }
+  const sendModalWhatsAppOrder = () => {
     openWhatsApp(orderMessage(selectedProduct, selectedProduct.rowTitle));
   };
 
@@ -257,10 +207,7 @@ export default function CategoryDetail({
     <div className="category-detail-page">
       <header className="page-top-nav">
         <button type="button" className="logo logo-home" onClick={() => onNavigate('welcome')} aria-label="Go to home page">
-          <img
-            src={theme === 'dark' ? '/bella_dark.png' : '/bella_light.png'}
-            alt="Bellalogo"
-          />
+          <img src={theme === 'dark' ? '/bella_dark.png' : '/bella_light.png'} alt="Bellalogo" />
         </button>
         <Navigation onNavigate={onNavigate} activePage={activePage} theme={theme} onToggleTheme={onToggleTheme} />
         <AuthStatusButton authSession={authSession} onClick={onLoginClick} />
@@ -318,86 +265,64 @@ export default function CategoryDetail({
 
               <div className="category-row-scroll-shell">
                 <div
-                  ref={(element) => {
-                    rowRefs.current[row.title] = element;
-                  }}
+                  ref={(element) => { rowRefs.current[row.title] = element; }}
                   className="category-card-grid scrollable"
                 >
-                {row.items.map((item) => (
-                  <article
-                    key={`${row.title}-${item.__catalogKey || item.id}`}
-                    className="category-card"
-                    onClick={() => openProduct(item, row.title)}
-                  >
-                    <div className="category-card-image">
-                      <img src={item.img} alt={item.name} />
-                    </div>
-                    <div className="category-card-body">
-                      <h2>{item.name}</h2>
-                      <p>{item.price}</p>
-                      {item.saleTag && <p className="category-sale-pill">{item.saleTag}</p>}
-                      <div className="category-card-actions">
-                        <button
-                          className="primary-button"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            openProduct(item, row.title);
-                          }}
-                        >
-                          Add to cart
-                        </button>
-                        <button
-                          type="button"
-                          className={`wishlist-btn ${wishlistIds.has(createItemPayload(item, row.title).itemId) ? 'active' : ''}`}
-                          aria-label="Add to wishlist"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            const details = buildProductDetails(item, row.title, category, activeSection);
-                            onToggleWishlist(
-                              createItemPayload(
-                                details,
-                                row.title,
-                                details.colors?.[0] || 'Default',
-                                details.sizes?.[0] || 'Default',
-                                1
-                              )
-                            );
-                          }}
-                        >
-                          {wishlistIds.has(createItemPayload(item, row.title).itemId) ? '♥' : '♡'}
-                        </button>
-                        {canManageCatalogue && (
+                  {row.items.map((item) => (
+                    <article
+                      key={`${row.title}-${item.__catalogKey || item.id}`}
+                      className="category-card"
+                      onClick={() => openProduct(item, row.title)}
+                    >
+                      <div className="category-card-image">
+                        <img src={item.img} alt={item.name} />
+                      </div>
+                      <div className="category-card-body">
+                        <h2>{item.name}</h2>
+                        <p>{item.price}</p>
+                        {item.saleTag && <p className="category-sale-pill">{item.saleTag}</p>}
+                        <div className="category-card-actions">
+                          <button
+                            className="primary-button"
+                            onClick={(event) => { event.stopPropagation(); openProduct(item, row.title); }}
+                          >
+                            Add to cart
+                          </button>
                           <button
                             type="button"
-                            className="startshopping-remove"
-                            onClick={(event) => handleAdminDeleteProduct(event, item, row.title)}
+                            className={`wishlist-btn ${wishlistIds.has(createItemPayload(item, row.title).itemId) ? 'active' : ''}`}
+                            aria-label="Add to wishlist"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              const details = buildProductDetails(item, row.title);
+                              onToggleWishlist(
+                                createItemPayload(details, row.title, details.colors?.[0] || 'Default', details.sizes?.[0] || 'Default', 1)
+                              );
+                            }}
                           >
-                            Delete item
+                            {wishlistIds.has(createItemPayload(item, row.title).itemId) ? '♥' : '♡'}
                           </button>
-                        )}
+                          {canManageCatalogue && (
+                            <button
+                              type="button"
+                              className="startshopping-remove"
+                              onClick={(event) => handleAdminDeleteProduct(event, item, row.title)}
+                            >
+                              Delete item
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </article>
-                ))}
+                    </article>
+                  ))}
                 </div>
 
                 {row.items.length > 1 && (
                   <div className="row-controls">
-                    <button
-                      type="button"
-                      className="row-nav-btn"
-                      onClick={() => scrollRow(row.title, 'left')}
-                      aria-label={`Scroll ${row.title} left`}
-                    >
+                    <button type="button" className="row-nav-btn" onClick={() => scrollRow(row.title, 'left')} aria-label={`Scroll ${row.title} left`}>
                       ←
                     </button>
-
-                    <button
-                      type="button"
-                      className="row-nav-btn"
-                      onClick={() => scrollRow(row.title, 'right')}
-                      aria-label={`Scroll ${row.title} right`}
-                    >
+                    <button type="button" className="row-nav-btn" onClick={() => scrollRow(row.title, 'right')} aria-label={`Scroll ${row.title} right`}>
                       →
                     </button>
                   </div>
@@ -410,21 +335,13 @@ export default function CategoryDetail({
         {selectedProduct && (
           <div className="product-modal-overlay" onClick={() => setSelectedProduct(null)}>
             <div className="product-modal" onClick={(event) => event.stopPropagation()}>
-              <button
-                type="button"
-                className="product-modal-close"
-                onClick={() => setSelectedProduct(null)}
-                aria-label="Close product details"
-              >
+              <button type="button" className="product-modal-close" onClick={() => setSelectedProduct(null)} aria-label="Close product details">
                 ×
               </button>
 
               <div className="product-modal-gallery">
                 <div className="product-modal-main-image">
-                  <img
-                    src={selectedProduct.gallery[selectedImageIndex]}
-                    alt={`${selectedProduct.name} preview ${selectedImageIndex + 1}`}
-                  />
+                  <img src={selectedProduct.gallery[selectedImageIndex]} alt={`${selectedProduct.name} preview ${selectedImageIndex + 1}`} />
                 </div>
                 <div className="product-modal-thumbs">
                   {selectedProduct.gallery.map((imgSrc, index) => (
@@ -449,9 +366,7 @@ export default function CategoryDetail({
                 </p>
                 {selectedProduct.stock !== null && (
                   <p className={`product-modal-stock ${selectedProduct.stock > 0 ? '' : 'out'}`}>
-                    {selectedProduct.stock > 0
-                      ? `${selectedProduct.stock} available in stock`
-                      : 'Out of stock'}
+                    {selectedProduct.stock > 0 ? `${selectedProduct.stock} available in stock` : 'Out of stock'}
                   </p>
                 )}
                 <p className="product-modal-description">{selectedProduct.description}</p>
@@ -495,21 +410,11 @@ export default function CategoryDetail({
                 <div className="product-modal-block">
                   <span>Quantity</span>
                   <div className="product-qty-control">
-                    <button
-                      type="button"
-                      className="product-qty-btn"
-                      onClick={() => setQuantity((value) => Math.max(1, value - 1))}
-                      aria-label="Decrease quantity"
-                    >
+                    <button type="button" className="product-qty-btn" onClick={() => setQuantity((value) => Math.max(1, value - 1))} aria-label="Decrease quantity">
                       −
                     </button>
                     <span className="product-qty-value">{quantity}</span>
-                    <button
-                      type="button"
-                      className="product-qty-btn"
-                      onClick={() => setQuantity((value) => Math.min(20, value + 1))}
-                      aria-label="Increase quantity"
-                    >
+                    <button type="button" className="product-qty-btn" onClick={() => setQuantity((value) => Math.min(20, value + 1))} aria-label="Increase quantity">
                       +
                     </button>
                   </div>
@@ -519,32 +424,14 @@ export default function CategoryDetail({
                   <button
                     type="button"
                     className="primary-button"
-                    disabled={
-                      !selectedColor ||
-                      !selectedSize ||
-                      quantity < 1 ||
-                      selectedProduct.stock === 0
-                    }
+                    disabled={!selectedColor || !selectedSize || quantity < 1 || selectedProduct.stock === 0}
                     onClick={() => {
-                      onAddCartItem(
-                        createItemPayload(
-                          selectedProduct,
-                          selectedProduct.rowTitle,
-                          selectedColor,
-                          selectedSize,
-                          quantity
-                        )
-                      );
+                      onAddCartItem(createItemPayload(selectedProduct, selectedProduct.rowTitle, selectedColor, selectedSize, quantity));
                     }}
                   >
                     Add to cart
                   </button>
-                  <button
-                    type="button"
-                    className="product-whatsapp-button"
-                    onClick={sendModalWhatsAppOrder}
-                    aria-label="Order on WhatsApp"
-                  >
+                  <button type="button" className="product-whatsapp-button" onClick={sendModalWhatsAppOrder} aria-label="Order on WhatsApp">
                     <WhatsAppIcon />
                   </button>
                   <button

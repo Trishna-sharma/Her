@@ -3,8 +3,6 @@ import { GoogleLogin } from '@react-oauth/google';
 import axios from 'axios';
 import Navigation from './Navigation.jsx';
 import AuthStatusButton from './AuthStatusButton.jsx';
-import { archiveOrder, listOrders, updateOrderStatus } from '../data/orderStore.js';
-
 import {
   addAdminItem,
   clearCatalogueItemOverride,
@@ -24,13 +22,8 @@ import {
   getAllCategoryNames,
 } from '../data/catalogAdminStore.js';
 
-
 function normalizeEmail(value) {
   return String(value || '').trim().toLowerCase();
-}
-
-function normalizePrice(value) {
-  return String(value || '').trim();
 }
 
 const CURRENCY_OPTIONS = [
@@ -112,7 +105,6 @@ function validateImageFile(file) {
   return '';
 }
 
-
 export default function AuthPortal({
   onNavigate,
   activePage,
@@ -124,24 +116,22 @@ export default function AuthPortal({
   onToggleTheme,
   categoryConfig,
   onToggleCategoryVisibility,
-  onCategoriesChanged = () => {},})
-  {
+  onCategoriesChanged = () => {},
+}) {
   const [role, setRole] = useState('admin');
   const [mode, setMode] = useState('login');
   const [notice, setNotice] = useState('');
   const [toast, setToast] = useState(null);
   const [inventoryVersion, setInventoryVersion] = useState(0);
-  const [ordersVersion, setOrdersVersion] = useState(0);
   const [categoriesVersion, setCategoriesVersion] = useState(0);
-const [newCategoryName, setNewCategoryName] = useState('');
-const [newSectionForm, setNewSectionForm] = useState({
-  category: '',
-  name: '',
-  price: '',
-  image: 'new-arrival.png',
-});
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [newSectionForm, setNewSectionForm] = useState({
+    category: '',
+    name: '',
+    price: '',
+    image: 'new-arrival.png',
+  });
 
-  // OTP Verification States
   const [otpStep, setOtpStep] = useState(false);
   const [otp, setOtp] = useState('');
 
@@ -172,13 +162,8 @@ const [newSectionForm, setNewSectionForm] = useState({
   const [selectedUploadFileName, setSelectedUploadFileName] = useState('');
   const [isUploadingGalleryImage, setIsUploadingGalleryImage] = useState(false);
   const [uploadingCatalogueGalleryKey, setUploadingCatalogueGalleryKey] = useState('');
-  const [orderNotes, setOrderNotes] = useState({});
   const hasUploadedItemImage = itemForm.image && itemForm.image !== 'new-arrival.png';
 
-  const [adminOrders, setAdminOrders] = useState([]);
-  const [ordersLoading, setOrdersLoading] = useState(false);
-
-  // LIVE MONITOR TRACKER STATE
   const [monitorData, setMonitorData] = useState({ summary: {}, activeSessions: [] });
 
   const toastTimerRef = useRef(null);
@@ -210,7 +195,6 @@ const [newSectionForm, setNewSectionForm] = useState({
   const isUserLoggedIn = authSession?.role === 'user';
   const hasActiveSession = Boolean(authSession);
 
-  // FETCH LIVE MONITOR DATA PERIODICALLY FOR ADMINS
   useEffect(() => {
     if (!isAdminLoggedIn) return;
 
@@ -226,35 +210,12 @@ const [newSectionForm, setNewSectionForm] = useState({
     };
 
     fetchMonitorData();
-    const interval = setInterval(fetchMonitorData, 5000); // Refresh every 5s
+    const interval = setInterval(fetchMonitorData, 5000);
     return () => clearInterval(interval);
   }, [isAdminLoggedIn]);
 
   const managedItems = useMemo(() => getAdminItems(), [inventoryVersion]);
   const websiteItems = useMemo(() => listAllWebsiteItems(), [inventoryVersion]);
-
-  const refreshOrders = async () => {
-    if (!isAdminLoggedIn) {
-      setAdminOrders([]);
-      return;
-    }
-
-    setOrdersLoading(true);
-    try {
-      const orders = await listOrders(authSession);
-      const sorted = [...orders].sort(
-        (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
-      );
-      setAdminOrders(sorted);
-    } finally {
-      setOrdersLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    refreshOrders();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAdminLoggedIn, ordersVersion, authSession?.token]);
 
   const categoryOptions = useMemo(
     () => ['All', ...new Set(websiteItems.map((item) => item.category))],
@@ -262,15 +223,15 @@ const [newSectionForm, setNewSectionForm] = useState({
   );
 
   const addItemCategoryOptions = useMemo(
-  () => getAllCategoryNames(),
-  [categoriesVersion]
-);
+    () => getAllCategoryNames(),
+    [categoriesVersion]
+  );
 
   const addItemSectionOptions = useMemo(() => {
-  const sections = getSectionsForCategory(itemForm.category || 'Clothing');
-  const options = Object.keys(sections);
-  return options.length ? options : ['Admin Picks'];
-}, [itemForm.category, inventoryVersion, categoriesVersion]);
+    const sections = getSectionsForCategory(itemForm.category || 'Clothing');
+    const options = Object.keys(sections);
+    return options.length ? options : ['Admin Picks'];
+  }, [itemForm.category, inventoryVersion, categoriesVersion]);
 
   const addItemSubSectionOptions = useMemo(() => {
     return ['Everyday Edit', 'Festive Edit', 'Premium Edit'];
@@ -303,91 +264,74 @@ const [newSectionForm, setNewSectionForm] = useState({
   };
 
   const customCategories = useMemo(() => getCustomCategories(), [categoriesVersion]);
-const allCategoryRows = useMemo(() => {
-  const builtInRows = (categoryConfig || []).map((c) => ({ ...c, isCustom: false }));
-  const customRows = customCategories.map((c) => ({ ...c, isCustom: true }));
-  return [...builtInRows, ...customRows];
-}, [categoryConfig, customCategories]);
+  const allCategoryRows = useMemo(() => {
+    const builtInRows = (categoryConfig || []).map((c) => ({ ...c, isCustom: false }));
+    const customRows = customCategories.map((c) => ({ ...c, isCustom: true }));
+    return [...builtInRows, ...customRows];
+  }, [categoryConfig, customCategories]);
 
-const handleAddCategory = (event) => {
-  event.preventDefault();
-  const name = newCategoryName.trim();
-  if (!name) {
-    setNotice('Enter a category name.');
-    return;
-  }
-  addCustomCategory(name, true);
-  setNewCategoryName('');
-  setCategoriesVersion((v) => v + 1);
-  onCategoriesChanged();
-  showToast(`Category "${name}" added.`, 'success');
-};
+  const handleAddCategory = (event) => {
+    event.preventDefault();
+    const name = newCategoryName.trim();
+    if (!name) {
+      setNotice('Enter a category name.');
+      return;
+    }
+    addCustomCategory(name, true);
+    setNewCategoryName('');
+    setCategoriesVersion((v) => v + 1);
+    onCategoriesChanged();
+    showToast(`Category "${name}" added.`, 'success');
+  };
 
-const handleDeleteCategory = (name) => {
-  removeCustomCategory(name);
-  setCategoriesVersion((v) => v + 1);
-  onCategoriesChanged();
-  showToast(`Category "${name}" removed.`, 'neutral');
-};
+  const handleDeleteCategory = (name) => {
+    removeCustomCategory(name);
+    setCategoriesVersion((v) => v + 1);
+    onCategoriesChanged();
+    showToast(`Category "${name}" removed.`, 'neutral');
+  };
 
-const handleToggleCategory = (categoryName) => {
-  onToggleCategoryVisibility(categoryName);
-  setCategoriesVersion((v) => v + 1);
-};
+  const handleToggleCategory = (categoryName) => {
+    onToggleCategoryVisibility(categoryName);
+    setCategoriesVersion((v) => v + 1);
+  };
 
-const handleAddSection = (event) => {
-  event.preventDefault();
-  const { category, name, price, image } = newSectionForm;
-  if (!category || !name.trim()) {
-    setNotice('Choose a category and enter a subcategory name.');
-    return;
-  }
-  addCustomSection(category, { name: name.trim(), price, img: image });
-  setNewSectionForm({ category, name: '', price: '', image: 'new-arrival.png' });
-  setCategoriesVersion((v) => v + 1);
-  setInventoryVersion((v) => v + 1);
-  onCategoriesChanged();
-  showToast(`Subcategory "${name}" added under ${category}.`, 'success');
-};
+  const handleAddSection = (event) => {
+    event.preventDefault();
+    const { category, name, price, image } = newSectionForm;
+    if (!category || !name.trim()) {
+      setNotice('Choose a category and enter a subcategory name.');
+      return;
+    }
+    addCustomSection(category, { name: name.trim(), price, img: image });
+    setNewSectionForm({ category, name: '', price: '', image: 'new-arrival.png' });
+    setCategoriesVersion((v) => v + 1);
+    setInventoryVersion((v) => v + 1);
+    onCategoriesChanged();
+    showToast(`Subcategory "${name}" added under ${category}.`, 'success');
+  };
 
-const handleDeleteSection = (category, name) => {
-  removeCustomSection(category, name);
-  setCategoriesVersion((v) => v + 1);
-  setInventoryVersion((v) => v + 1);
-  onCategoriesChanged();
-  showToast(`Subcategory "${name}" removed.`, 'neutral');
-};
+  const handleDeleteSection = (category, name) => {
+    removeCustomSection(category, name);
+    setCategoriesVersion((v) => v + 1);
+    setInventoryVersion((v) => v + 1);
+    onCategoriesChanged();
+    showToast(`Subcategory "${name}" removed.`, 'neutral');
+  };
 
- const handleAdminAuth = async () => {
-  if (hasActiveSession && !isAdminLoggedIn) {
-    setNotice('Logout current user first, then login as admin.');
-    return;
-  }
+  const handleAdminAuth = async () => {
+    if (hasActiveSession && !isAdminLoggedIn) {
+      setNotice('Logout current user first, then login as admin.');
+      return;
+    }
 
-  const email = normalizeEmail(adminForm.email);
-  const password = adminForm.password;
+    const email = normalizeEmail(adminForm.email);
+    const password = adminForm.password;
 
-  if (!email || !password) {
-    setNotice('Enter admin email and password.');
-    return;
-  }
-
-  try {
-    const rawBase = import.meta.env.VITE_API_URL || 'https://bella-liliac-backend.vercel.app/';
-    const apiBase = rawBase.replace(/\/+$/, '');
-
-    const response = await axios.post(`${apiBase}/api/auth/admin-login`, { email, password });
-    const { token, user } = response.data;
-
-    onAuthChange({ role: 'admin', email: user.email, name: user.name || 'Admin', token });
-    setNotice('');
-    showToast('Logged in successfully.', 'success');
-  } catch (error) {
-    const backendMessage = error?.response?.data?.message;
-    setNotice(backendMessage || 'Invalid admin credentials.');
-     }
-   
-    
+    if (!email || !password) {
+      setNotice('Enter admin email and password.');
+      return;
+    }
 
     try {
       const rawBase = import.meta.env.VITE_API_URL || 'https://bella-liliac-backend.vercel.app/';
@@ -654,13 +598,7 @@ const handleDeleteSection = (category, name) => {
       if (!response) {
         try {
           const signatureResponse = await axios.get(`${apiBase}/api/uploads/cloudinary-signature`);
-          const {
-            apiKey,
-            signature,
-            timestamp,
-            folder,
-            uploadUrl,
-          } = signatureResponse.data || {};
+          const { apiKey, signature, timestamp, folder, uploadUrl } = signatureResponse.data || {};
 
           if (!apiKey || !signature || !timestamp || !folder || !uploadUrl) {
             throw new Error('Cloudinary signature data is missing.');
@@ -896,37 +834,9 @@ const handleDeleteSection = (category, name) => {
     showToast('Item reset to original data.', 'neutral');
   };
 
-  const handleOrderStatusChange = async (orderCode, status) => {
-    const note = String(orderNotes[orderCode] || '').trim();
-    try {
-      await updateOrderStatus(orderCode, status, note, authSession);
-      setOrdersVersion((value) => value + 1);
-      showToast('Order status updated.', 'success');
-    } catch (error) {
-      console.error('Failed to update order status:', error);
-      showToast('Failed to update order status.', 'neutral');
-    }
-  };
-
-  const handleArchiveOrder = async (orderCode) => {
-    try {
-      await archiveOrder(orderCode, authSession);
-      setOrdersVersion((value) => value + 1);
-      showToast('Order archived.', 'success');
-    } catch (error) {
-      console.error('Failed to archive order:', error);
-      showToast('Failed to archive order.', 'neutral');
-    }
-  };
-
   const buildSessionDetails = () => {
     if (!authSession) {
-      return {
-        role: '-',
-        name: '-',
-        username: '-',
-        email: '-',
-      };
+      return { role: '-', name: '-', username: '-', email: '-' };
     }
 
     const name = String(authSession.name || '').trim() || (authSession.role === 'admin' ? 'Admin' : '-');
@@ -1028,122 +938,122 @@ const handleDeleteSection = (category, name) => {
         </button>
       </div>
 
-<details className="auth-admin-section" open>
-  <summary>Manage Categories & Subcategories</summary>
-  <p className="auth-catalog-caption">
-    Create new top-level categories (like "Bags") and subcategories (like "Scrunchies" inside Skin Care) without code changes. Toggle visibility to show/hide from customers.
-  </p>
+      <details className="auth-admin-section" open>
+        <summary>Manage Categories & Subcategories</summary>
+        <p className="auth-catalog-caption">
+          Create new top-level categories (like "Bags") and subcategories (like "Scrunchies" inside Skin Care) without code changes. Toggle visibility to show/hide from customers.
+        </p>
 
-  <div className="auth-form-section">
-    <h3>Categories</h3>
-    <div className="auth-catalog-list">
-      {allCategoryRows.map((cat) => (
-        <article
-          key={cat.name}
-          className="auth-catalog-card"
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}
-        >
-          <div>
-            <h3 style={{ margin: 0 }}>{cat.name}{cat.isCustom ? ' (custom)' : ''}</h3>
-            <small>{cat.isPublic ? 'Visible to customers' : 'Hidden from customers'}</small>
-          </div>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <button type="button" className="secondary-button" onClick={() => handleToggleCategory(cat.name)}>
-              {cat.isPublic ? 'Hide' : 'Show'}
-            </button>
-            {cat.isCustom && (
-              <button type="button" className="startshopping-remove" onClick={() => handleDeleteCategory(cat.name)}>
-                Delete
-              </button>
-            )}
-          </div>
-        </article>
-      ))}
-    </div>
-
-    <form className="auth-item-form" onSubmit={handleAddCategory} style={{ marginTop: '0.9rem' }}>
-      <label className="auth-field">
-        <span>New category name</span>
-        <input
-          type="text"
-          placeholder="e.g. Bags"
-          value={newCategoryName}
-          onChange={(event) => setNewCategoryName(event.target.value)}
-        />
-      </label>
-      <div className="auth-actions">
-        <button type="submit" className="primary-button">Add category</button>
-      </div>
-    </form>
-  </div>
-
-  <div className="auth-form-section" style={{ marginTop: '1rem' }}>
-    <h3>Subcategories</h3>
-    <form className="auth-item-form" onSubmit={handleAddSection}>
-      <div className="auth-form-grid">
-        <label className="auth-field">
-          <span>Category</span>
-          <select
-            value={newSectionForm.category}
-            onChange={(event) => setNewSectionForm((prev) => ({ ...prev, category: event.target.value }))}
-          >
-            <option value="">Choose category</option>
+        <div className="auth-form-section">
+          <h3>Categories</h3>
+          <div className="auth-catalog-list">
             {allCategoryRows.map((cat) => (
-              <option key={cat.name} value={cat.name}>{cat.name}</option>
-            ))}
-          </select>
-        </label>
-        <label className="auth-field">
-          <span>Subcategory name</span>
-          <input
-            type="text"
-            placeholder="e.g. Scrunchies"
-            value={newSectionForm.name}
-            onChange={(event) => setNewSectionForm((prev) => ({ ...prev, name: event.target.value }))}
-          />
-        </label>
-        <label className="auth-field">
-          <span>Starting price (shown on folder card)</span>
-          <input
-            type="text"
-            placeholder="$25"
-            value={newSectionForm.price}
-            onChange={(event) => setNewSectionForm((prev) => ({ ...prev, price: event.target.value }))}
-          />
-        </label>
-      </div>
-      <div className="auth-actions">
-        <button type="submit" className="primary-button">Add subcategory</button>
-      </div>
-    </form>
-
-    {newSectionForm.category && (
-      <div className="auth-catalog-list" style={{ marginTop: '0.8rem' }}>
-        {getCustomSections(newSectionForm.category).length === 0 ? (
-          <p className="auth-catalog-empty">No custom subcategories under {newSectionForm.category} yet.</p>
-        ) : (
-          getCustomSections(newSectionForm.category).map((section) => (
-            <article
-              key={section.id}
-              className="auth-catalog-card"
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
-            >
-              <h3 style={{ margin: 0 }}>{section.name}</h3>
-              <button
-                type="button"
-                className="startshopping-remove"
-                onClick={() => handleDeleteSection(newSectionForm.category, section.name)}
+              <article
+                key={cat.name}
+                className="auth-catalog-card"
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}
               >
-                Delete
-              </button>
-            </article>
-          ))
-        )}
-      </div>
-    )}
-  </div>
-</details>
-      {/* LIVE VISITOR & MONITOR TRACKER */}
+                <div>
+                  <h3 style={{ margin: 0 }}>{cat.name}{cat.isCustom ? ' (custom)' : ''}</h3>
+                  <small>{cat.isPublic ? 'Visible to customers' : 'Hidden from customers'}</small>
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button type="button" className="secondary-button" onClick={() => handleToggleCategory(cat.name)}>
+                    {cat.isPublic ? 'Hide' : 'Show'}
+                  </button>
+                  {cat.isCustom && (
+                    <button type="button" className="startshopping-remove" onClick={() => handleDeleteCategory(cat.name)}>
+                      Delete
+                    </button>
+                  )}
+                </div>
+              </article>
+            ))}
+          </div>
+
+          <form className="auth-item-form" onSubmit={handleAddCategory} style={{ marginTop: '0.9rem' }}>
+            <label className="auth-field">
+              <span>New category name</span>
+              <input
+                type="text"
+                placeholder="e.g. Bags"
+                value={newCategoryName}
+                onChange={(event) => setNewCategoryName(event.target.value)}
+              />
+            </label>
+            <div className="auth-actions">
+              <button type="submit" className="primary-button">Add category</button>
+            </div>
+          </form>
+        </div>
+
+        <div className="auth-form-section" style={{ marginTop: '1rem' }}>
+          <h3>Subcategories</h3>
+          <form className="auth-item-form" onSubmit={handleAddSection}>
+            <div className="auth-form-grid">
+              <label className="auth-field">
+                <span>Category</span>
+                <select
+                  value={newSectionForm.category}
+                  onChange={(event) => setNewSectionForm((prev) => ({ ...prev, category: event.target.value }))}
+                >
+                  <option value="">Choose category</option>
+                  {allCategoryRows.map((cat) => (
+                    <option key={cat.name} value={cat.name}>{cat.name}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="auth-field">
+                <span>Subcategory name</span>
+                <input
+                  type="text"
+                  placeholder="e.g. Scrunchies"
+                  value={newSectionForm.name}
+                  onChange={(event) => setNewSectionForm((prev) => ({ ...prev, name: event.target.value }))}
+                />
+              </label>
+              <label className="auth-field">
+                <span>Starting price (shown on folder card)</span>
+                <input
+                  type="text"
+                  placeholder="$25"
+                  value={newSectionForm.price}
+                  onChange={(event) => setNewSectionForm((prev) => ({ ...prev, price: event.target.value }))}
+                />
+              </label>
+            </div>
+            <div className="auth-actions">
+              <button type="submit" className="primary-button">Add subcategory</button>
+            </div>
+          </form>
+
+          {newSectionForm.category && (
+            <div className="auth-catalog-list" style={{ marginTop: '0.8rem' }}>
+              {getCustomSections(newSectionForm.category).length === 0 ? (
+                <p className="auth-catalog-empty">No custom subcategories under {newSectionForm.category} yet.</p>
+              ) : (
+                getCustomSections(newSectionForm.category).map((section) => (
+                  <article
+                    key={section.id}
+                    className="auth-catalog-card"
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                  >
+                    <h3 style={{ margin: 0 }}>{section.name}</h3>
+                    <button
+                      type="button"
+                      className="startshopping-remove"
+                      onClick={() => handleDeleteSection(newSectionForm.category, section.name)}
+                    >
+                      Delete
+                    </button>
+                  </article>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      </details>
+
       <details className="auth-admin-section" open>
         <summary>Live Visitor Tracker</summary>
         <p className="auth-catalog-caption">Real-time active visitors and admin session counts.</p>
@@ -1605,78 +1515,6 @@ const handleDeleteSection = (category, name) => {
             })
           )}
         </div>
-      </details>
-
-      <details className="auth-admin-section" open>
-        <summary>Order Tracker</summary>
-        <p className="auth-catalog-caption">Update status here after you receive the WhatsApp order confirmation.</p>
-
-        {ordersLoading && adminOrders.length === 0 ? (
-          <p className="auth-catalog-empty">Loading orders…</p>
-        ) : adminOrders.length === 0 ? (
-          <p className="auth-catalog-empty">No orders yet. Orders appear here after customers confirm cart on WhatsApp.</p>
-        ) : (
-          <div className="auth-catalog-list">
-            {adminOrders.map((order) => (
-              <article key={order.orderCode} className="auth-catalog-card">
-                <div className="auth-catalog-meta">
-                  <h3>{order.orderCode}</h3>
-                  <p>{order.customerName || 'Guest customer'}{order.customerEmail ? ` • ${order.customerEmail}` : ''}</p>
-                  <small>{new Date(order.createdAt).toLocaleString()}</small>
-                </div>
-
-                <div className="auth-catalog-grid">
-                  <label className="auth-field auth-field-full">
-                    <span>Status note (optional)</span>
-                    <input
-                      type="text"
-                      placeholder="Packing now, delivery in 2 days"
-                      value={orderNotes[order.orderCode] ?? order.statusNote ?? ''}
-                      onChange={(event) => setOrderNotes((prev) => ({
-                        ...prev,
-                        [order.orderCode]: event.target.value,
-                      }))}
-                    />
-                  </label>
-                </div>
-
-                <div className="auth-order-actions">
-                  <button type="button" className="secondary-button" onClick={() => handleOrderStatusChange(order.orderCode, 'confirmed')}>
-                    Confirm order
-                  </button>
-                  <button type="button" className="secondary-button" onClick={() => handleOrderStatusChange(order.orderCode, 'packing')}>
-                    Packing
-                  </button>
-                  <button type="button" className="secondary-button" onClick={() => handleOrderStatusChange(order.orderCode, 'delivery_2d')}>
-                    Delivery in 2 days
-                  </button>
-                  <button type="button" className="secondary-button" onClick={() => handleOrderStatusChange(order.orderCode, 'delivered')}>
-                    Mark delivered
-                  </button>
-                </div>
-
-                <div className="auth-order-items">
-                  {(order.items || []).map((item) => (
-                    <p key={`${order.orderCode}-${item.cartId}`}>
-                      {item.name} • Qty {item.quantity}
-                      {item.userRating !== null ? ` • User rating ${item.userRating}/5` : ''}
-                    </p>
-                  ))}
-                </div>
-
-                <div className="auth-catalog-actions">
-                  <button
-                    type="button"
-                    className="startshopping-remove"
-                    onClick={() => handleArchiveOrder(order.orderCode)}
-                  >
-                    Archive order
-                  </button>
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
       </details>
     </div>
   );

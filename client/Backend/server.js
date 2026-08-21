@@ -14,7 +14,6 @@ import ActiveSession from './models/ActiveSessions.js';
 import ActivityLog from './models/ActivityLogs.js';
 import User from './user.js';
 import cloudinary from './cloudinary.js';
-import Order from './models/Order.js';
 
 // --- ENVIRONMENT & APP INITIALIZATION ---
 const __filename = fileURLToPath(import.meta.url);
@@ -41,7 +40,6 @@ const uploadImage = multer({
 // --- MIDDLEWARE ---
 app.use(express.json());
 
-// CORS Setup
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
@@ -53,12 +51,10 @@ const allowedOrigins = [
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
-
     const isLocalhost = /^http:\/\/localhost:\d+$/.test(origin);
     if (isLocalhost || allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
-
     return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
@@ -67,14 +63,10 @@ app.use(cors({
 // --- EMAIL NORMALIZATION HELPER ---
 const normalizeEmail = (rawEmail) => {
   if (!rawEmail || typeof rawEmail !== 'string') return '';
-  
   let email = rawEmail.trim().toLowerCase();
   const parts = email.split('@');
-  
   if (parts.length !== 2) return email;
-
   let [local, domain] = parts;
-
   if (domain === 'gmail.com' || domain === 'googlemail.com') {
     local = local.replace(/\./g, '');
     local = local.split('+')[0];
@@ -82,34 +74,24 @@ const normalizeEmail = (rawEmail) => {
   } else {
     local = local.split('+')[0];
   }
-
   return `${local}@${domain}`;
 };
 
 // --- MONGODB CONNECTION CACHING ---
 let cached = global.mongoose;
-
 if (!cached) {
   cached = global.mongoose = { conn: null, promise: null };
 }
 
 async function connectDB() {
-  if (cached.conn) {
-    return cached.conn;
-  }
-
+  if (cached.conn) return cached.conn;
   if (!cached.promise) {
-    const opts = {
-      bufferCommands: false,
-      serverSelectionTimeoutMS: 5000,
-    };
-
+    const opts = { bufferCommands: false, serverSelectionTimeoutMS: 5000 };
     cached.promise = mongoose.connect(process.env.MONGO_URI, opts).then((m) => {
       console.log('✅ MongoDB Connected Successfully!');
       return m;
     });
   }
-
   try {
     cached.conn = await cached.promise;
   } catch (e) {
@@ -117,7 +99,6 @@ async function connectDB() {
     console.error('❌ MongoDB Connection Error:', e);
     throw e;
   }
-
   return cached.conn;
 }
 
@@ -130,10 +111,7 @@ const issueToken = (user, role = 'user') => jwt.sign(
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
+  auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
 });
 
 const sendOtpEmail = async (email, otp) => {
@@ -152,42 +130,6 @@ const sendOtpEmail = async (email, otp) => {
   });
 };
 
-function generateOrderCode() {
-  return 'ORD-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).slice(2, 6).toUpperCase();
-}
-
-// --- AUTH MIDDLEWARE ---
-async function attachUserIfPresent(req, _res, next) {
-  const authHeader = req.headers.authorization || '';
-  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
-  if (!token) return next();
-
-  try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET || 'secret');
-    req.userId = payload.id || null;
-    req.userEmail = payload.email;
-    req.userRole = payload.role || 'user';
-  } catch {
-    // invalid/expired token — treat as guest, don't block
-  }
-  next();
-}
-
-function requireAuth(req, res, next) {
-  if (!req.userEmail) {
-    return res.status(401).json({ message: 'Authentication required.' });
-  }
-  next();
-}
-
-function requireAdmin(req, res, next) {
-  if (req.userRole !== 'admin') {
-    return res.status(403).json({ message: 'Admin access required.' });
-  }
-  next();
-}
-
-
 // --- ROUTES ---
 
 // 1. Live Tracking & Monitoring
@@ -198,7 +140,6 @@ app.post('/api/auth/heartbeat', async (req, res) => {
     if (!sessionId) {
       return res.status(400).json({ message: 'Session ID is required' });
     }
-
     await ActiveSession.findOneAndUpdate(
       { sessionId },
       {
@@ -211,7 +152,6 @@ app.post('/api/auth/heartbeat', async (req, res) => {
       },
       { upsert: true }
     );
-
     return res.status(200).json({ status: 'ok' });
   } catch (error) {
     console.error('Heartbeat Error:', error);
@@ -222,17 +162,14 @@ app.post('/api/auth/heartbeat', async (req, res) => {
 app.get('/api/admin/monitoring-dashboard', async (req, res) => {
   try {
     await connectDB();
-    const cutoff = new Date(Date.now() - 30 * 1000); // active in last 30s
-
+    const cutoff = new Date(Date.now() - 30 * 1000);
     const sessions = await ActiveSession.find({ lastSeen: { $gte: cutoff } }).lean();
-
     const summary = {
       totalActive: sessions.length,
       admins: sessions.filter((s) => s.role === 'admin').length,
       registeredUsers: sessions.filter((s) => s.role === 'user').length,
       guests: sessions.filter((s) => s.role === 'guest').length,
     };
-
     return res.json({ summary, activeSessions: sessions });
   } catch (error) {
     console.error('Monitoring Dashboard Error:', error);
@@ -248,7 +185,6 @@ app.get('/api/uploads/cloudinary-signature', (req, res) => {
     { timestamp, folder },
     process.env.CLOUDINARY_API_SECRET
   );
-
   return res.json({
     cloudName: process.env.CLOUDINARY_CLOUD_NAME,
     apiKey: process.env.CLOUDINARY_API_KEY,
@@ -267,28 +203,18 @@ app.post('/api/uploads/image', (req, res) => {
       }
       return res.status(400).json({ message: error.message || 'Upload failed.' });
     }
-
     if (error) {
       return res.status(400).json({ message: error.message || 'Upload failed.' });
     }
-
     if (!req.file) {
       return res.status(400).json({ message: 'No image file provided.' });
     }
-
     const stream = cloudinary.uploader.upload_stream(
-      {
-        folder: 'her-by-mou/items',
-        resource_type: 'image',
-      },
+      { folder: 'her-by-mou/items', resource_type: 'image' },
       (uploadError, result) => {
         if (uploadError) {
-          return res.status(500).json({
-            message: 'Cloudinary upload failed.',
-            error: uploadError.message,
-          });
+          return res.status(500).json({ message: 'Cloudinary upload failed.', error: uploadError.message });
         }
-
         return res.status(201).json({
           message: 'Image uploaded successfully.',
           url: result?.secure_url,
@@ -298,7 +224,6 @@ app.post('/api/uploads/image', (req, res) => {
         });
       }
     );
-
     stream.end(req.file.buffer);
   });
 });
@@ -307,7 +232,6 @@ app.post('/api/uploads/image', (req, res) => {
 app.post('/api/auth/login', async (req, res) => {
   try {
     await connectDB();
-
     const { email, password } = req.body;
     const normalized = normalizeEmail(email);
     const safePassword = String(password || '');
@@ -337,7 +261,6 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
-// Admin login — credentials live server-side only, never in frontend code
 app.post('/api/auth/admin-login', async (req, res) => {
   const { email, password } = req.body;
   const normalized = String(email || '').trim().toLowerCase();
@@ -359,7 +282,6 @@ app.post('/api/auth/admin-login', async (req, res) => {
 app.post('/api/auth/google', async (req, res) => {
   try {
     await connectDB();
-
     const { credential } = req.body;
     if (!credential) {
       return res.status(400).json({ message: 'Google credential token is missing.' });
@@ -383,12 +305,8 @@ app.post('/api/auth/google', async (req, res) => {
 
     if (!user) {
       user = new User({
-        googleId,
-        email: normalized,
-        name,
-        picture,
-        isGoogleUser: true,
-        isVerified: true,
+        googleId, email: normalized, name, picture,
+        isGoogleUser: true, isVerified: true,
       });
       await user.save();
       console.log('✨ New Google user saved to MongoDB:', normalized);
@@ -401,16 +319,10 @@ app.post('/api/auth/google', async (req, res) => {
     }
 
     const token = issueToken(user);
-
     return res.status(200).json({
       message: 'Login successful',
       token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        picture: user.picture,
-      },
+      user: { id: user._id, name: user.name, email: user.email, picture: user.picture },
     });
   } catch (error) {
     console.error('Google Auth Route Error:', error);
@@ -421,7 +333,6 @@ app.post('/api/auth/google', async (req, res) => {
 app.post('/api/auth/send-otp', async (req, res) => {
   try {
     await connectDB();
-
     const { email } = req.body;
     const rawEmail = String(email || '').trim().toLowerCase();
     const normalized = normalizeEmail(email);
@@ -466,7 +377,6 @@ app.post('/api/auth/send-otp', async (req, res) => {
 app.post('/api/auth/verify-otp', async (req, res) => {
   try {
     await connectDB();
-
     const { email, otp, name, password } = req.body;
     const rawEmail = String(email || '').trim().toLowerCase();
     const normalized = normalizeEmail(email);
@@ -491,7 +401,6 @@ app.post('/api/auth/verify-otp', async (req, res) => {
     await user.save();
 
     const token = issueToken(user);
-
     return res.status(200).json({
       message: 'Account verified successfully!',
       token,
@@ -500,144 +409,6 @@ app.post('/api/auth/verify-otp', async (req, res) => {
   } catch (error) {
     console.error('Verify OTP Error:', error);
     return res.status(500).json({ message: 'OTP verification failed.', error: error.message });
-  }
-});
-
-// 4. Order Management Routes
-app.post('/api/orders', attachUserIfPresent, async (req, res) => {
-  try {
-    await connectDB();
-    const { items = [], subtotal = 0 } = req.body;
-
-    if (!Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({ message: 'Order must include at least one item.' });
-    }
-
-    const order = await Order.create({
-      orderCode: generateOrderCode(),
-      customerEmail: req.userEmail || null,
-      customerName: req.userEmail ? req.userEmail.split('@')[0] : null,
-      userId: req.userId || null,
-      items,
-      subtotal,
-      status: 'pending',
-    });
-
-    return res.status(201).json({ order });
-  } catch (error) {
-    console.error('Create Order Error:', error);
-    return res.status(500).json({ message: 'Failed to create order.', error: error.message });
-  }
-});
-
-app.get('/api/orders/mine', attachUserIfPresent, requireAuth, async (req, res) => {
-  try {
-    await connectDB();
-    const orders = await Order.find({ customerEmail: req.userEmail })
-      .sort({ createdAt: -1 })
-      .lean();
-    return res.json({ orders });
-  } catch (error) {
-    console.error('Get My Orders Error:', error);
-    return res.status(500).json({ message: 'Failed to load orders.' });
-  }
-});
-
-app.get('/api/orders', attachUserIfPresent, requireAdmin, async (req, res) => {
-  try {
-    await connectDB();
-    const orders = await Order.find({ isArchived: false }).sort({ createdAt: -1 }).lean();
-    return res.json({ orders });
-  } catch (error) {
-    console.error('List Orders Error:', error);
-    return res.status(500).json({ message: 'Failed to load orders.' });
-  }
-});
-
-app.patch('/api/orders/:orderCode/status', attachUserIfPresent, requireAdmin, async (req, res) => {
-  try {
-    await connectDB();
-    const { status, statusNote } = req.body;
-    const order = await Order.findOneAndUpdate(
-      { orderCode: req.params.orderCode },
-      { status, statusNote: statusNote || '' },
-      { new: true }
-    );
-    if (!order) return res.status(404).json({ message: 'Order not found.' });
-    return res.json({ order });
-  } catch (error) {
-    console.error('Update Order Status Error:', error);
-    return res.status(500).json({ message: 'Failed to update order.' });
-  }
-});
-
-app.patch('/api/orders/:orderCode/archive', attachUserIfPresent, requireAdmin, async (req, res) => {
-  try {
-    await connectDB();
-    const order = await Order.findOneAndUpdate(
-      { orderCode: req.params.orderCode },
-      { isArchived: true },
-      { new: true }
-    );
-    if (!order) return res.status(404).json({ message: 'Order not found.' });
-    return res.json({ order });
-  } catch (error) {
-    console.error('Archive Order Error:', error);
-    return res.status(500).json({ message: 'Failed to archive order.' });
-  }
-});
-
-app.patch('/api/orders/:orderCode/rate', attachUserIfPresent, requireAuth, async (req, res) => {
-  try {
-    await connectDB();
-    const { cartId, rating } = req.body;
-    const order = await Order.findOne({ orderCode: req.params.orderCode, customerEmail: req.userEmail });
-    if (!order) return res.status(404).json({ message: 'Order not found.' });
-    if (order.status !== 'delivered') {
-      return res.status(400).json({ message: 'Order must be delivered before rating.' });
-    }
-
-    const item = order.items.find((i) => i.cartId === cartId);
-    if (!item) return res.status(404).json({ message: 'Item not found in order.' });
-
-    item.userRating = Number(rating);
-    await order.save();
-
-    return res.json({ order });
-  } catch (error) {
-    console.error('Rate Order Item Error:', error);
-    return res.status(500).json({ message: 'Failed to submit rating.' });
-  }
-});
-
-app.get('/api/orders/ratings-summary', async (req, res) => {
-  try {
-    await connectDB();
-    const orders = await Order.find({ 'items.userRating': { $ne: null } }).lean();
-
-    const summary = {};
-    orders.forEach((order) => {
-      order.items.forEach((item) => {
-        if (item.userRating === null || item.userRating === undefined) return;
-        const key = [item.category, item.section, item.rowTitle, item.name]
-          .map((v) => String(v || '').trim().toLowerCase())
-          .join('::');
-
-        if (!summary[key]) summary[key] = { total: 0, count: 0 };
-        summary[key].total += item.userRating;
-        summary[key].count += 1;
-      });
-    });
-
-    const finalSummary = {};
-    Object.entries(summary).forEach(([key, { total, count }]) => {
-      finalSummary[key] = { rating: total / count, reviews: count };
-    });
-
-    return res.json({ summary: finalSummary });
-  } catch (error) {
-    console.error('Ratings Summary Error:', error);
-    return res.status(500).json({ message: 'Failed to load ratings summary.' });
   }
 });
 

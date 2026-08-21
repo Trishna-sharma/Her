@@ -1,13 +1,6 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
+﻿import React, { useMemo, useState } from 'react';
 import Navigation from './Navigation.jsx';
 import AuthStatusButton from './AuthStatusButton.jsx';
-import {
-  ORDER_STATUSES,
-  createOrderFromCart,
-  createOrderFromItems,
-  getCustomerOrders,
-  rateDeliveredOrderItem,
-} from '../data/orderStore.js';
 
 const WHATSAPP_NUMBER = '8801853314954';
 
@@ -47,33 +40,6 @@ export default function Startshopping({
   onToggleTheme,
 }) {
   const [activeTab, setActiveTab] = useState('cart');
-  const [orderHistory, setOrderHistory] = useState([]);
-  const [ordersLoading, setOrdersLoading] = useState(false);
-  const [ratingDrafts, setRatingDrafts] = useState({});
-
-  // Order history now comes from the backend and is scoped to the logged-in
-  // customer server-side (via their token) — there's no more client-side
-  // "guest orders" fallback, since a guest has no account to look history up
-  // against on a different device/session anyway.
-  const loadOrderHistory = async () => {
-    if (!authSession?.token) {
-      setOrderHistory([]);
-      return;
-    }
-
-    setOrdersLoading(true);
-    try {
-      const orders = await getCustomerOrders(authSession);
-      setOrderHistory(orders);
-    } finally {
-      setOrdersLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadOrderHistory();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authSession?.token]);
 
   const cartTotal = useMemo(
     () => cartItems.reduce((sum, item) => sum + parsePrice(item.price) * item.quantity, 0),
@@ -96,24 +62,11 @@ export default function Startshopping({
       .filter(Boolean)
       .join('\n');
 
-  const createSingleItemOrder = async (item) => {
-    try {
-      await createOrderFromItems({
-        items: [item],
-        authSession,
-        subtotal: parsePrice(item.price) * item.quantity,
-      });
-    } catch (error) {
-      console.error('Error creating single item order:', error);
-    }
-  };
-
-  const orderAllMessage = (orderId = '') => {
+  const orderAllMessage = () => {
     const header = [
       'Hello Bella,',
       '',
       'I would like to confirm all items from my saved cart:',
-      orderId ? `Order ID: ${orderId}` : '',
       '',
     ];
 
@@ -136,39 +89,12 @@ export default function Startshopping({
     return [...header, formattedItems.join('\n\n'), footer].join('\n');
   };
 
-  const createWhatsAppOrder = async () => {
+  const createWhatsAppOrder = () => {
     if (cartItems.length === 0) {
       alert('Your cart is empty. Add items before confirming.');
       return;
     }
-
-    try {
-      const createdOrder = await createOrderFromCart({
-        cartItems,
-        authSession,
-        subtotal: cartTotal,
-      });
-
-      await loadOrderHistory();
-      openWhatsApp(orderAllMessage(createdOrder.orderCode));
-    } catch (error) {
-      console.error('Error creating WhatsApp order:', error);
-      alert('There was an error. Please try again.');
-    }
-  };
-
-  const orderStatusLabel = (status) => {
-    return ORDER_STATUSES.find((item) => item.value === status)?.label || status;
-  };
-
-  const submitRating = async (orderCode, cartId) => {
-    const key = `${orderCode}__${cartId}`;
-    const rating = ratingDrafts[key];
-    const ok = await rateDeliveredOrderItem(orderCode, cartId, rating, authSession);
-    if (!ok) return;
-
-    setRatingDrafts((prev) => ({ ...prev, [key]: '' }));
-    loadOrderHistory();
+    openWhatsApp(orderAllMessage());
   };
 
   return (
@@ -249,11 +175,7 @@ export default function Startshopping({
                           <button
                             type="button"
                             className="product-whatsapp-button"
-                            onClick={async () => {
-                              await createSingleItemOrder(item);
-                              await loadOrderHistory();
-                              openWhatsApp(orderSingleMessage(item));
-                            }}
+                            onClick={() => openWhatsApp(orderSingleMessage(item))}
                             aria-label="Order on WhatsApp"
                           >
                             <WhatsAppIcon />
@@ -278,78 +200,6 @@ export default function Startshopping({
                     Confirm all on WhatsApp
                   </button>
                 </div>
-
-                {!authSession?.token ? (
-                  <div className="saved-orders-history" aria-label="Order history">
-                    <h3>Your recent orders</h3>
-                    <p className="saved-orders-caption">
-                      Log in to see your order status updates here after admin confirms packing, delivery, or completion.
-                    </p>
-                  </div>
-                ) : ordersLoading && orderHistory.length === 0 ? (
-                  <div className="saved-orders-history" aria-label="Order history">
-                    <p className="saved-orders-caption">Loading your orders…</p>
-                  </div>
-                ) : orderHistory.length > 0 && (
-                  <div className="saved-orders-history" aria-label="Order history">
-                    <h3>Your recent orders</h3>
-                    <p className="saved-orders-caption">
-                      Your order status updates here after admin confirms packing, delivery, or completion.
-                    </p>
-                    {orderHistory.map((order) => (
-                      <article key={order.orderCode} className="saved-order-card">
-                        <div className="saved-order-head">
-                          <strong>{order.orderCode}</strong>
-                          <span className="order-status-tag">{orderStatusLabel(order.status)}</span>
-                        </div>
-
-                        {order.statusNote && (
-                          <p className="saved-order-note saved-order-note-highlight">
-                            {order.statusNote}
-                          </p>
-                        )}
-
-                        <div className="saved-order-items">
-                          {(order.items || []).map((item) => {
-                            const ratingKey = `${order.orderCode}__${item.cartId}`;
-                            return (
-                              <div key={ratingKey} className="saved-order-item-line">
-                                <span>
-                                  {item.name} x {item.quantity}
-                                </span>
-                                {order.status === 'delivered' && item.userRating === null && (
-                                  <div className="saved-order-rate">
-                                    <select
-                                      value={ratingDrafts[ratingKey] || ''}
-                                      onChange={(event) =>
-                                        setRatingDrafts((prev) => ({
-                                          ...prev,
-                                          [ratingKey]: event.target.value,
-                                        }))
-                                      }
-                                    >
-                                      <option value="">Rate</option>
-                                      <option value="5">5</option>
-                                      <option value="4">4</option>
-                                      <option value="3">3</option>
-                                      <option value="2">2</option>
-                                      <option value="1">1</option>
-                                    </select>
-                                    <button type="button" onClick={() => submitRating(order.orderCode, item.cartId)}>
-                                      Submit
-                                    </button>
-                                  </div>
-                                )}
-
-                                {item.userRating !== null && <small>Rated {item.userRating}/5</small>}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </article>
-                    ))}
-                  </div>
-                )}
               </>
             )}
           </section>

@@ -1,10 +1,12 @@
 ﻿import React, { useRef } from 'react';
 import Navigation from './Navigation.jsx';
 import AuthStatusButton from './AuthStatusButton.jsx';
-import { createOrderFromItems } from '../data/orderStore.js';
 import { getNewArrivals } from '../data/catalogAdminStore.js';
 
-const fallbackArrivals = [  {
+const WHATSAPP_NUMBER = '8801853314954';
+
+const fallbackArrivals = [
+  {
     id: 'arr-1',
     name: 'Minimal Ivory Lehenga',
     price: '$219',
@@ -35,10 +37,8 @@ const fallbackArrivals = [  {
     img: '/new-arrival(1).jpg',
     category: 'Clothing',
     section: 'Lehengas',
-  },];
-
-const WHATSAPP_NUMBER = '8801853314954';
-
+  },
+];
 
 function openWhatsApp(message) {
   const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
@@ -70,6 +70,9 @@ export default function CategoryPage({
   const scrollRef = useRef(null);
   const arrivalsRef = useRef(null);
 
+  const dynamicArrivals = getNewArrivals(8);
+  const arrivals = dynamicArrivals.length ? dynamicArrivals : fallbackArrivals;
+
   const scroll = (direction) => {
     if (scrollRef.current) {
       const element = scrollRef.current;
@@ -98,29 +101,6 @@ export default function CategoryPage({
     });
   };
 
-  const sendArrivalWhatsAppOrder = (item) => {
-    const cartPayload = {
-      itemId: `${item.category}__${item.section}__Everyday Edit__${item.name}`,
-      cartId: `${item.category}__${item.section}__Everyday Edit__${item.name}__Default__Default`,
-      name: item.name,
-      price: item.price,
-      img: item.img,
-      category: item.category,
-      section: item.section,
-      rowTitle: 'Everyday Edit',
-      color: 'Default',
-      size: 'Default',
-      quantity: 1,
-    };
-
-    createOrderFromItems({
-      items: [cartPayload],
-      authSession,
-      subtotal: Number.parseInt(String(item.price).replace(/[^0-9]/g, ''), 10) || 0,
-    });
-    openWhatsApp(arrivalOrderMessage(item));
-  };
-
   const arrivalOrderMessage = (item) =>
     [
       'Hello Her by Mou,',
@@ -132,11 +112,11 @@ export default function CategoryPage({
       'Quantity: 1',
     ].join('\n');
 
-  const dynamicArrivals = getNewArrivals(8);
-  const arrivals = dynamicArrivals.length ? dynamicArrivals : fallbackArrivals;
+  const sendArrivalWhatsAppOrder = (item) => {
+    openWhatsApp(arrivalOrderMessage(item));
+  };
 
   return (
-      
     <div className="category-page">
       <header className="page-top-nav">
         <button
