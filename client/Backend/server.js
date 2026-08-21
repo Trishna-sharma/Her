@@ -10,10 +10,11 @@ import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import nodemailer from 'nodemailer';
 
-import ActiveSession from './models/ActiveSession.js';
-import ActivityLog from './models/ActivityLog.js';
+import ActiveSession from './models/ActiveSessions.js';
+import ActivityLog from './models/ActivityLogs.js';
 import User from './user.js';
 import cloudinary from './cloudinary.js';
+import Order from './models/Order.js';
 
 // --- ENVIRONMENT & APP INITIALIZATION ---
 const __filename = fileURLToPath(import.meta.url);
